@@ -3,10 +3,25 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start:dev": "concurrently \"npm run start:server\" \"npm run start:client\"",
+    "start:server": "cd src && npm run start:dev",
+    "start:client": "cd client && npm run serve",
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "cd src && npm run build",
+    "build:client": "cd client && npm run build",
+    "lint": "npm run lint:server && npm run lint:client",
+    "lint:server": "cd src && npm run lint",
+    "lint:client": "cd client && npm run lint",
+    "format": "npm run format:server && npm run format:client",
+    "format:server": "cd src && npm run format",
+    "format:client": "cd client && npx prettier --write \"src/**/*.{js,ts,vue,json}\"",
+    "start:prod": "cd src && npm run start:prod"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
 }
