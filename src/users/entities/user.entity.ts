@@ -1,8 +1,14 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+} from 'typeorm';
 import { Exclude } from 'class-transformer';
 
-// Импорты других сущностей будут добавлены позже
-// import { Request } from '../../requests/entities/request.entity';
+import { Request } from '../../requests/entities/request.entity';
 
 // Определяем перечисление для ролей пользователей
 export enum UserRole {
@@ -29,7 +35,7 @@ export class User {
   @Column({
     type: 'enum',
     enum: UserRole,
-    default: UserRole.USER
+    default: UserRole.USER,
   })
   role: UserRole;
 
@@ -48,10 +54,9 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  // Связи с другими сущностями будут добавлены позже
-  // @OneToMany(() => Request, (request) => request.createdBy)
-  // createdRequests: Request[];
+  @OneToMany(() => Request, (request) => request.createdBy)
+  createdRequests: Request[];
 
-  // @OneToMany(() => Request, (request) => request.assignedTo)
-  // assignedRequests: Request[];
+  @OneToMany(() => Request, (request) => request.assignedTo)
+  assignedRequests: Request[];
 }
