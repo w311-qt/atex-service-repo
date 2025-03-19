@@ -9,11 +9,20 @@
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
+    "axios": "^1.8.3",
+    "chart.js": "^3.9.1",
     "core-js": "^3.8.3",
+    "date-fns": "^4.1.0",
+    "mitt": "^3.0.1",
+    "pinia": "^3.0.1",
     "register-service-worker": "^1.7.2",
+    "vee-validate": "^4.15.0",
     "vue": "^3.2.13",
+    "vue-chart-3": "^3.1.8",
+    "vue-router": "^4.5.0",
     "vuetify": "^3.7.0-beta.1",
-    "vuex": "^4.0.0"
+    "vuex": "^4.0.0",
+    "yup": "^1.6.1"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",
@@ -23,6 +32,7 @@
     "@vue/cli-plugin-pwa": "~5.0.0",
     "@vue/cli-plugin-vuex": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
+    "@vue/eslint-config-prettier": "^7.0.0",
     "eslint": "^7.32.0",
     "eslint-plugin-vue": "^8.0.3"
   }
