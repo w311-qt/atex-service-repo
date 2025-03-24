@@ -1,7 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, OneToMany } from 'typeorm';
 import { Equipment } from './equipment.entity';
 
-
 @Entity('equipment_categories')
 export class Category {
   @PrimaryGeneratedColumn('uuid')
