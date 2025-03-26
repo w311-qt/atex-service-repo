@@ -1,87 +1,84 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Status } from '../entities/status.entity';
-import { CreateStatusDto } from '../dto/create-status.dto';
-import { UpdateStatusDto } from '../dto/update-status.dto';
+import { Category } from '../entities/category.entity';
+import { CreateCategoryDto } from '../dto/create-category.dto';
+import { UpdateCategoryDto } from '../dto/update-category.dto';
 
 @Injectable()
-export class StatusService {
+export class CategoryService {
   constructor(
-    @InjectRepository(Status)
-    private statusRepository: Repository<Status>,
+    @InjectRepository(Category)
+    private categoryRepository: Repository<Category>,
   ) {}
 
-  async findAll(): Promise<Status[]> {
-    return this.statusRepository.find({
+  async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
+    // Check if category with this name already exists
+    const existingCategory = await this.categoryRepository.findOne({
+      where: { name: createCategoryDto.name },
+    });
+
+    if (existingCategory) {
+      throw new ConflictException(`Category with name "${createCategoryDto.name}" already exists`);
+    }
+
+    const category = this.categoryRepository.create(createCategoryDto);
+    return this.categoryRepository.save(category);
+  }
+
+  async findAll(): Promise<Category[]> {
+    return this.categoryRepository.find({
       order: { name: 'ASC' },
     });
   }
 
-  async findOne(id: string): Promise<Status> {
-    const status = await this.statusRepository.findOne({
+  async findOne(id: string): Promise<Category> {
+    const category = await this.categoryRepository.findOne({
       where: { id },
     });
 
-    if (!status) {
-      throw new NotFoundException(`Status with ID "${id}" not found`);
+    if (!category) {
+      throw new NotFoundException(`Category with ID "${id}" not found`);
     }
 
-    return status;
+    return category;
   }
 
-  async create(createStatusDto: CreateStatusDto): Promise<Status> {
-    // Check if status with this name already exists
-    const existingStatus = await this.statusRepository.findOne({
-      where: { name: createStatusDto.name },
-    });
-
-    if (existingStatus) {
-      throw new ConflictException(`Status with name "${createStatusDto.name}" already exists`);
-    }
-
-    const status = this.statusRepository.create(createStatusDto);
-    return this.statusRepository.save(status);
-  }
-
-  async update(id: string, updateStatusDto: UpdateStatusDto): Promise<Status> {
-    const status = await this.findOne(id);
+  async update(id: string, updateCategoryDto: UpdateCategoryDto): Promise<Category> {
+    const category = await this.findOne(id);
 
     // Check if name is being updated and is already in use
-    if (updateStatusDto.name && updateStatusDto.name !== status.name) {
-      const existingStatus = await this.statusRepository.findOne({
-        where: { name: updateStatusDto.name },
+    if (updateCategoryDto.name && updateCategoryDto.name !== category.name) {
+      const existingCategory = await this.categoryRepository.findOne({
+        where: { name: updateCategoryDto.name },
       });
 
-      if (existingStatus) {
-        throw new ConflictException(`Status with name "${updateStatusDto.name}" already exists`);
+      if (existingCategory) {
+        throw new ConflictException(`Category with name "${updateCategoryDto.name}" already exists`);
       }
     }
 
-    Object.assign(status, updateStatusDto);
-    return this.statusRepository.save(status);
+    Object.assign(category, updateCategoryDto);
+    return this.categoryRepository.save(category);
   }
 
   async remove(id: string): Promise<void> {
-    const status = await this.findOne(id);
+    const category = await this.findOne(id);
 
-    // Check if status is in use
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const equipmentCount = await this.statusRepository
-      .createQueryBuilder('status')
-      .leftJoin('status.equipment', 'equipment')
-      .where('status.id = :id', { id })
+    // Check if category is in use
+    const equipmentCount = await this.categoryRepository
+      .createQueryBuilder('category')
+      .leftJoin('category.equipment', 'equipment')
+      .where('category.id = :id', { id })
       .select('COUNT(equipment.id)', 'count')
       .getRawOne();
 
-    if (equipmentCount && equipmentCount.count > 0) {
+    if (equipmentCount && parseInt(equipmentCount.count, 10) > 0) {
       throw new ConflictException(
-        `Cannot delete status. It is used by ${equipmentCount.count} equipment item(s).`,
+        `Cannot delete category. It is used by ${equipmentCount.count} equipment item(s).`,
       );
     }
 
-    await this.statusRepository.remove(status);
+    await this.categoryRepository.remove(category);
   }
 }
-
-export class CategoryService {}
