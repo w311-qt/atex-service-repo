@@ -1,5 +1,5 @@
-import { IsEnum, IsOptional, IsString, IsUUID, IsDate, IsIn } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
+import { IsEnum, IsOptional, IsString, IsUUID, IsArray, IsDateString } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class RequestFilterDto {
   @IsString()
@@ -11,13 +11,28 @@ export class RequestFilterDto {
   @IsOptional()
   typeId?: string;
 
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  typeIds?: string[];
+
   @IsUUID()
   @IsOptional()
   statusId?: string;
 
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  statusIds?: string[];
+
   @IsUUID()
   @IsOptional()
   priorityId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  priorityIds?: string[];
 
   @IsUUID()
   @IsOptional()
@@ -33,35 +48,30 @@ export class RequestFilterDto {
 
   @IsString()
   @IsOptional()
-  @Transform(({ value }) => value?.trim())
-  location?: string;
+  cartridgeModel?: string;
 
   @IsString()
   @IsOptional()
-  @Transform(({ value }) => value?.trim())
-  cartridgeModel?: string;
-
-  @IsDate()
-  @IsOptional()
-  @Type(() => Date)
-  fromDate?: Date;
-
-  @IsDate()
-  @IsOptional()
-  @Type(() => Date)
-  toDate?: Date;
+  location?: string;
 
   @IsOptional()
-  @IsIn(['true', 'false', true, false])
-  @Transform(({ value }) => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value;
-  })
-  completed?: boolean;
+  @IsDateString()
+  createdFromDate?: string;
 
-  @IsEnum(['createdAt', 'updatedAt', 'completedAt', 'number', 'title', 'priority'], {
-    message: 'Sort must be one of: createdAt, updatedAt, completedAt, number, title, priority',
+  @IsOptional()
+  @IsDateString()
+  createdToDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  completedFromDate?: string;
+
+  @IsOptional()
+  @IsDateString()
+  completedToDate?: string;
+
+  @IsEnum(['number', 'title', 'createdAt', 'updatedAt', 'completedAt'], {
+    message: 'Sort must be one of: number, title, createdAt, updatedAt, completedAt',
   })
   @IsOptional()
   sortBy?: string = 'createdAt';

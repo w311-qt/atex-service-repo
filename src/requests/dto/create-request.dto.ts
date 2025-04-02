@@ -1,28 +1,5 @@
-import {
-  IsNotEmpty,
-  IsString,
-  IsUUID,
-  IsOptional,
-  MaxLength,
-  IsEnum
-} from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import { Transform } from 'class-transformer';
-
-// This enum should match your database enum if you're using one
-export enum RequestPriorityEnum {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical',
-}
-
-// This enum should match your database enum if you're using one
-export enum RequestTypeEnum {
-  REPAIR = 'repair',
-  CARTRIDGE_REFILL = 'cartridgeRefill',
-  DISPOSAL = 'disposal',
-  RELOCATION = 'relocation',
-}
 
 export class CreateRequestDto {
   @IsString()
@@ -37,11 +14,11 @@ export class CreateRequestDto {
   description?: string;
 
   @IsUUID()
-  @IsNotEmpty({ message: 'Type ID is required' })
+  @IsNotEmpty({ message: 'Type is required' })
   typeId: string;
 
   @IsUUID()
-  @IsNotEmpty({ message: 'Priority ID is required' })
+  @IsNotEmpty({ message: 'Priority is required' })
   priorityId: string;
 
   @IsUUID()
@@ -59,21 +36,4 @@ export class CreateRequestDto {
   @MaxLength(255, { message: 'Location must not exceed 255 characters' })
   @Transform(({ value }) => value?.trim())
   location?: string;
-
-  // This is an alternative approach using enums directly instead of UUIDs
-  // We're keeping both approaches for flexibility - comment out whichever you don't need
-
-  /*
-  @IsEnum(RequestTypeEnum, {
-    message: `Type must be one of: ${Object.values(RequestTypeEnum).join(', ')}`
-  })
-  @IsNotEmpty({ message: 'Type is required' })
-  type: RequestTypeEnum;
-
-  @IsEnum(RequestPriorityEnum, {
-    message: `Priority must be one of: ${Object.values(RequestPriorityEnum).join(', ')}`
-  })
-  @IsNotEmpty({ message: 'Priority is required' })
-  priority: RequestPriorityEnum;
-  */
 }

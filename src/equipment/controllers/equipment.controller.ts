@@ -8,6 +8,10 @@ import {
   Delete,
   UseGuards,
   Query,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipeBuilder,
+  PayloadTooLargeException,
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
@@ -20,6 +24,7 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { UserRole } from '../../users/entities/user.entity';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('equipment')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -59,5 +64,37 @@ export class EquipmentController {
   @Roles(UserRole.ADMIN, UserRole.TECHNICIAN)
   assignToUser(@Param('id') id: string, @Body() assignDto: AssignEquipmentDto) {
     return this.equipmentService.assignToUser(id, assignDto);
+  }
+
+  @Post(':id/image')
+  @Roles(UserRole.ADMIN, UserRole.TECHNICIAN)
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadImage(
+    @Param('id') id: string,
+    @UploadedFile(
+      new ParseFilePipeBuilder()
+        .addFileTypeValidator({
+          fileType: /(jpg|jpeg|png|gif)$/,
+        })
+        .addMaxSizeValidator({
+          maxSize: 5 * 1024 * 1024, // 5MB
+        })
+        .build({
+          exceptionFactory: (error) => {
+            if (error.includes('file size')) {
+              return new PayloadTooLargeException('File is too large (max 5MB)');
+            }
+            return error;
+          },
+        }),
+    )
+    file: Express.Multer.File,
+  ) {
+    return this.equipmentService.uploadImage(id, file.filename);
+  }
+  @Get('statistics')
+  @Roles(UserRole.ADMIN, UserRole.TECHNICIAN)
+  getStatistics() {
+    return this.equipmentService.getStatistics();
   }
 }
