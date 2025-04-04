@@ -43,10 +43,10 @@ export class RequestActivity {
   @Column({ nullable: true, type: 'text' })
   message: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'text' })
   oldValue: string | null;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'text' })
   newValue: string | null;
 
   @CreateDateColumn()
