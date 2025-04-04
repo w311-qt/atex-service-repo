@@ -30,7 +30,7 @@ export const AppDataSource = new DataSource({
     RequestStatus,
     RequestPriority,
     Request,
-    RequestActivity
+    RequestActivity,
   ],
   migrations: ['dist/migrations/*{.ts,.js}'],
   synchronize: false, // В продакшене всегда должно быть false!

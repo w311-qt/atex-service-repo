@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsArray, IsDateString, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class EquipmentFilterDto {
@@ -41,4 +41,22 @@ export class EquipmentFilterDto {
   @IsOptional()
   @Transform(({ value }) => parseInt(value, 10))
   limit?: number = 10;
+
+  @IsOptional()
+  @IsDateString()
+  purchaseDateFrom?: string;
+
+  @IsOptional()
+  @IsDateString()
+  purchaseDateTo?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  categoryIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID(undefined, { each: true })
+  statusIds?: string[];
 }

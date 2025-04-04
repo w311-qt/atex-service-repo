@@ -9,6 +9,8 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
+import { EquipmentModule } from './equipment/equipment.module';
+import { FileModule } from './file/file.module';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { RolesGuard } from './auth/guards/roles.guard';
     // Application modules
     UsersModule,
     AuthModule,
+    EquipmentModule,
+    FileModule,
     // Add other modules here as they are developed
   ],
   controllers: [AppController],

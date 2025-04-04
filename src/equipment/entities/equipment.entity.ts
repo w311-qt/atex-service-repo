@@ -6,10 +6,12 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { Category } from './category.entity';
 import { Status } from './status.entity';
 import { User } from '../../users/entities/user.entity';
+import { EquipmentSpecification } from './equipment-specification.entity';
 
 @Entity('equipment')
 export class Equipment {
@@ -63,4 +65,9 @@ export class Equipment {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => EquipmentSpecification, (specification) => specification.equipment, {
+    cascade: true,
+  })
+  specifications: EquipmentSpecification[];
 }

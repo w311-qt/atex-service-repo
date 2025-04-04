@@ -1,7 +1,7 @@
 // src/equipment/services/equipment.service.ts
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
 import { Equipment } from '../entities/equipment.entity';
 import { CreateEquipmentDto } from '../dto/create-equipment.dto';
@@ -11,6 +11,8 @@ import { EquipmentResponseDto } from '../dto/equipment-response.dto';
 import { AssignEquipmentDto } from '../dto/assign-equipment.dto';
 import { UsersService } from '../../users/users.service';
 import { Logger } from '@nestjs/common';
+import { FileService } from '../../file/file.service';
+import { BulkAssignEquipmentDto, BulkStatusUpdateDto } from '../dto/bulk-operations.dto';
 
 @Injectable()
 export class EquipmentService {
@@ -20,9 +22,12 @@ export class EquipmentService {
     @InjectRepository(Equipment)
     private equipmentRepository: Repository<Equipment>,
     private usersService: UsersService,
+    private fileService: FileService,
   ) {}
 
-  async findAll(filterDto: EquipmentFilterDto): Promise<{ data: EquipmentResponseDto[]; total: number; page: number; limit: number }> {
+  async findAll(
+    filterDto: EquipmentFilterDto,
+  ): Promise<{ data: EquipmentResponseDto[]; total: number; page: number; limit: number }> {
     const { search, categoryId, statusId, assignedToId, location } = filterDto;
 
     // Ensure page and limit have default values
@@ -41,6 +46,32 @@ export class EquipmentService {
 
     if (statusId) {
       queryBuilder.andWhere('equipment.statusId = :statusId', { statusId });
+    }
+
+    if (filterDto.categoryIds && filterDto.categoryIds.length > 0) {
+      queryBuilder.andWhere('equipment.categoryId IN (:...categoryIds)', {
+        categoryIds: filterDto.categoryIds,
+      });
+    }
+
+    // Добавить фильтрацию по массиву статусов
+    if (filterDto.statusIds && filterDto.statusIds.length > 0) {
+      queryBuilder.andWhere('equipment.statusId IN (:...statusIds)', {
+        statusIds: filterDto.statusIds,
+      });
+    }
+
+    // Добавить фильтрацию по диапазону дат
+    if (filterDto.purchaseDateFrom) {
+      queryBuilder.andWhere('equipment.purchaseDate >= :purchaseDateFrom', {
+        purchaseDateFrom: filterDto.purchaseDateFrom,
+      });
+    }
+
+    if (filterDto.purchaseDateTo) {
+      queryBuilder.andWhere('equipment.purchaseDate <= :purchaseDateTo', {
+        purchaseDateTo: filterDto.purchaseDateTo,
+      });
     }
 
     if (assignedToId) {
@@ -75,7 +106,9 @@ export class EquipmentService {
     const [equipment, total] = await queryBuilder.getManyAndCount();
 
     return {
-      data: equipment.map(item => plainToInstance(EquipmentResponseDto, item, { excludeExtraneousValues: true })),
+      data: equipment.map((item) =>
+        plainToInstance(EquipmentResponseDto, item, { excludeExtraneousValues: true }),
+      ),
       total,
       page,
       limit,
@@ -102,7 +135,9 @@ export class EquipmentService {
     });
 
     if (existingEquipment) {
-      throw new ConflictException(`Equipment with inventory number "${createEquipmentDto.inventoryNumber}" already exists`);
+      throw new ConflictException(
+        `Equipment with inventory number "${createEquipmentDto.inventoryNumber}" already exists`,
+      );
     }
 
     // Create new equipment
@@ -119,13 +154,18 @@ export class EquipmentService {
     const equipment = await this.findOneEntity(id);
 
     // Check if inventory number is being updated and is already in use
-    if (updateEquipmentDto.inventoryNumber && updateEquipmentDto.inventoryNumber !== equipment.inventoryNumber) {
+    if (
+      updateEquipmentDto.inventoryNumber &&
+      updateEquipmentDto.inventoryNumber !== equipment.inventoryNumber
+    ) {
       const existingEquipment = await this.equipmentRepository.findOne({
         where: { inventoryNumber: updateEquipmentDto.inventoryNumber },
       });
 
       if (existingEquipment) {
-        throw new ConflictException(`Equipment with inventory number "${updateEquipmentDto.inventoryNumber}" already exists`);
+        throw new ConflictException(
+          `Equipment with inventory number "${updateEquipmentDto.inventoryNumber}" already exists`,
+        );
       }
     }
 
@@ -137,14 +177,6 @@ export class EquipmentService {
     this.logger.log(`Equipment updated: ${updatedEquipment.id} - ${updatedEquipment.name}`);
 
     return this.findOne(updatedEquipment.id);
-  }
-
-  async remove(id: string): Promise<void> {
-    const equipment = await this.findOneEntity(id);
-    await this.equipmentRepository.remove(equipment);
-
-    // Log the deletion
-    this.logger.log(`Equipment deleted: ${id} - ${equipment.name}`);
   }
 
   async assignToUser(id: string, assignDto: AssignEquipmentDto): Promise<EquipmentResponseDto> {
@@ -176,5 +208,119 @@ export class EquipmentService {
     }
 
     return equipment;
+  }
+  async uploadImage(id: string, filename: string): Promise<EquipmentResponseDto> {
+    const equipment = await this.findOneEntity(id);
+
+    // Если у оборудования уже есть изображение, удаляем его
+    if (equipment.image) {
+      try {
+        await this.fileService.deleteFile(equipment.image);
+      } catch (error) {
+        this.logger.warn(`Failed to delete previous image ${equipment.image}: ${error.message}`);
+      }
+    }
+    equipment.image = filename;
+    const updatedEquipment = await this.equipmentRepository.save(equipment);
+
+    this.logger.log(`Updated image for equipment ${id}: ${filename}`);
+
+    return this.findOne(updatedEquipment.id);
+  }
+
+  async remove(id: string): Promise<void> {
+    const equipment = await this.findOneEntity(id);
+
+    // Удаляем изображение, если оно есть
+    if (equipment.image) {
+      try {
+        await this.fileService.deleteFile(equipment.image);
+        this.logger.log(`Deleted image ${equipment.image} for equipment ${id}`);
+      } catch (error) {
+        this.logger.warn(`Failed to delete image ${equipment.image}: ${error.message}`);
+      }
+    }
+
+    await this.equipmentRepository.remove(equipment);
+    this.logger.log(`Equipment deleted: ${id} - ${equipment.name}`);
+  }
+  async bulkAssignToUser(bulkAssignDto: BulkAssignEquipmentDto): Promise<void> {
+    // Проверка существования пользователя
+    await this.usersService.findOne(bulkAssignDto.userId);
+
+    // Обновление assignedToId для всех указанных единиц оборудования
+    await this.equipmentRepository.update(
+      { id: In(bulkAssignDto.equipmentIds) },
+      { assignedToId: bulkAssignDto.userId },
+    );
+
+    this.logger.log(
+      `Assigned equipment ids ${bulkAssignDto.equipmentIds.join(', ')} to user ${bulkAssignDto.userId}`,
+    );
+  }
+
+  async bulkUpdateStatus(bulkStatusDto: BulkStatusUpdateDto): Promise<void> {
+    // Проверка существования статуса
+    // Здесь должен быть вызов statusService.findOne()
+
+    // Обновление statusId для всех указанных единиц оборудования
+    await this.equipmentRepository.update(
+      { id: In(bulkStatusDto.equipmentIds) },
+      { statusId: bulkStatusDto.statusId },
+    );
+
+    this.logger.log(
+      `Updated status to ${bulkStatusDto.statusId} for equipment ids ${bulkStatusDto.equipmentIds.join(', ')}`,
+    );
+  }
+  async getStatistics(): Promise<any> {
+    // Статистика по статусам
+    const statusStats = await this.equipmentRepository
+      .createQueryBuilder('equipment')
+      .select('status.name', 'status')
+      .addSelect('COUNT(equipment.id)', 'count')
+      .leftJoin('equipment.status', 'status')
+      .groupBy('status.name')
+      .getRawMany();
+
+    // Статистика по категориям
+    const categoryStats = await this.equipmentRepository
+      .createQueryBuilder('equipment')
+      .select('category.name', 'category')
+      .addSelect('COUNT(equipment.id)', 'count')
+      .leftJoin('equipment.category', 'category')
+      .groupBy('category.name')
+      .getRawMany();
+
+    // Статистика по возрасту оборудования
+    const currentDate = new Date();
+    const oneYearAgo = new Date(currentDate);
+    oneYearAgo.setFullYear(currentDate.getFullYear() - 1);
+
+    const threeYearsAgo = new Date(currentDate);
+    threeYearsAgo.setFullYear(currentDate.getFullYear() - 3);
+
+    const ageStats = await this.equipmentRepository
+      .createQueryBuilder('equipment')
+      .select(
+        `CASE
+        WHEN equipment.purchaseDate > :oneYearAgo THEN 'Less than 1 year'
+        WHEN equipment.purchaseDate > :threeYearsAgo THEN '1-3 years'
+        ELSE 'More than 3 years'
+      END`,
+        'ageGroup',
+      )
+      .addSelect('COUNT(equipment.id)', 'count')
+      .setParameter('oneYearAgo', oneYearAgo)
+      .setParameter('threeYearsAgo', threeYearsAgo)
+      .groupBy('ageGroup')
+      .getRawMany();
+
+    return {
+      byStatus: statusStats,
+      byCategory: categoryStats,
+      byAge: ageStats,
+      total: await this.equipmentRepository.count(),
+    };
   }
 }
