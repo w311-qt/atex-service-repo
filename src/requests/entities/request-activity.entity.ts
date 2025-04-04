@@ -44,10 +44,10 @@ export class RequestActivity {
   message: string;
 
   @Column({ nullable: true })
-  oldValue: string;
+  oldValue: string | null;
 
   @Column({ nullable: true })
-  newValue: string;
+  newValue: string | null;
 
   @CreateDateColumn()
   timestamp: Date;

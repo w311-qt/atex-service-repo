@@ -53,7 +53,7 @@ export class Request {
   assignedTo: User;
 
   @Column({ nullable: true })
-  assignedToId: string;
+  assignedToId: string | null;
 
   @ManyToOne(() => Equipment, { nullable: true })
   @JoinColumn({ name: 'equipmentId' })
