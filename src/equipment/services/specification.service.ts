@@ -14,7 +14,6 @@ export class SpecificationService {
   ) {}
 
   async findAllForEquipment(equipmentId: string): Promise<EquipmentSpecification[]> {
-    // Check if equipment exists
     await this.equipmentService.findOne(equipmentId);
 
     return this.specificationRepository.find({

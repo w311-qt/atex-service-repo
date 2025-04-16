@@ -10,6 +10,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from '@nestjs/common';
 import { RequestService } from '../services/request.service';
 import { CreateRequestDto } from '../dto/create-request.dto';
