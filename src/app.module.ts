@@ -11,6 +11,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { EquipmentModule } from './equipment/equipment.module';
 import { FileModule } from './file/file.module';
+import { RequestsModule } from './requests/request.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { FileModule } from './file/file.module';
     AuthModule,
     EquipmentModule,
     FileModule,
+    RequestsModule,
     // Add other modules here as they are developed
   ],
   controllers: [AppController],

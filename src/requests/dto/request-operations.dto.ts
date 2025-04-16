@@ -15,8 +15,8 @@ export class ChangeStatusDto {
 
 export class AssignRequestDto {
   @IsUUID()
-  @IsNotEmpty({ message: 'User ID is required' })
-  userId: string;
+  @IsOptional()
+  userId?: string;
 
   @IsString()
   @IsOptional()

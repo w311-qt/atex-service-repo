@@ -6,9 +6,7 @@ import { ConfigService } from '@nestjs/config';
  * @param configService Сервис конфигурации NestJS для доступа к .env
  * @returns Объект конфигурации TypeORM
  */
-export const getDatabaseConfig = (
-  configService: ConfigService,
-): TypeOrmModuleOptions => ({
+export const getDatabaseConfig = (configService: ConfigService): TypeOrmModuleOptions => ({
   type: 'postgres',
   host: configService.get('DATABASE_HOST'),
   port: configService.get<number>('DATABASE_PORT'),
@@ -18,8 +16,5 @@ export const getDatabaseConfig = (
   entities: ['dist/**/*.entity{.ts,.js}'],
   synchronize: configService.get('NODE_ENV') === 'development', // Только для разработки!
   logging: configService.get('NODE_ENV') === 'development',
-  ssl:
-    configService.get('NODE_ENV') === 'production'
-      ? { rejectUnauthorized: false }
-      : false,
+  ssl: configService.get('NODE_ENV') === 'production' ? { rejectUnauthorized: false } : false,
 });
