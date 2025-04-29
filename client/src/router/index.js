@@ -1,25 +1,25 @@
 import Vue from 'vue';
-import { createRouter, createWebHistory } from 'vue-router';
-import { useAuthStore } from '@/store/auth';
+import VueRouter from 'vue-router';
 import store from '@/store';
 
 // Layouts
 import MainLayout from '@/layouts/MainLayout.vue';
+import BlankLayout from '@/layouts/BlankLayout.vue';
 
 // Views
 import Login from '@/views/Login.vue';
-import RequestListView from '@/views/RequestListView.vue';
+import Dashboard from '@/views/Dashboard.vue';
 import EquipmentList from '@/views/equipment/EquipmentList.vue';
 import EquipmentDetails from '@/views/equipment/EquipmentDetails.vue';
-
-// Lazy-loaded views
-const Dashboard = () => import('@/views/Dashboard.vue');
-const Categories = () => import('@/views/Categories.vue');
-const Users = () => import('@/views/Users.vue');
-const Reports = () => import('@/views/Reports.vue');
-const Profile = () => import('@/views/Profile.vue');
-const Settings = () => import('@/views/Settings.vue');
-const NotFound = () => import('@/views/NotFound.vue');
+import CategoryList from '@/views/equipment/CategoryList.vue';
+import StatusList from '@/views/equipment/StatusList.vue';
+import RequestList from '@/views/requests/RequestList.vue';
+import RequestDetails from '@/views/requests/RequestDetails.vue';
+import Profile from '@/views/Profile.vue';
+import Settings from '@/views/Settings.vue';
+import Reports from '@/views/Reports.vue';
+import Users from '@/views/Users.vue';
+import NotFound from '@/views/NotFound.vue';
 
 Vue.use(VueRouter);
 
@@ -29,8 +29,8 @@ const routes = [
     name: 'Login',
     component: Login,
     meta: {
-      requiresAuth: false,
-      layout: 'blank'
+      layout: BlankLayout,
+      requiresAuth: false
     }
   },
   {
@@ -55,25 +55,25 @@ const routes = [
         props: true
       },
       {
+        path: 'equipment/categories',
+        name: 'CategoryList',
+        component: CategoryList
+      },
+      {
+        path: 'equipment/statuses',
+        name: 'StatusList',
+        component: StatusList
+      },
+      {
         path: 'requests',
         name: 'RequestList',
-        component: RequestListView
+        component: RequestList
       },
       {
-        path: 'categories',
-        name: 'Categories',
-        component: Categories
-      },
-      {
-        path: 'users',
-        name: 'Users',
-        component: Users,
-        meta: { requiresAdmin: true }
-      },
-      {
-        path: 'reports',
-        name: 'Reports',
-        component: Reports
+        path: 'requests/:id',
+        name: 'RequestDetails',
+        component: RequestDetails,
+        props: true
       },
       {
         path: 'profile',
@@ -83,40 +83,49 @@ const routes = [
       {
         path: 'settings',
         name: 'Settings',
-        component: Settings
+        component: Settings,
+        meta: { requiresAdmin: true }
+      },
+      {
+        path: 'reports',
+        name: 'Reports',
+        component: Reports
+      },
+      {
+        path: 'users',
+        name: 'Users',
+        component: Users,
+        meta: { requiresAdmin: true }
       }
     ]
   },
   {
-    path: '/:pathMatch(.*)*',
+    path: '*',
     name: 'NotFound',
     component: NotFound
   }
 ];
 
-const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
+const router = new VueRouter({
+  mode: 'history',
+  base: process.env.BASE_URL,
   routes
 });
 
+// Навигационный guard для проверки авторизации
 router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore();
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin);
+  const isAuthenticated = store.getters['auth/isAuthenticated'];
+  const isAdmin = store.getters['auth/isAdmin'];
 
-  // Проверка аутентификации
-  if (requiresAuth && !authStore.isAuthenticated) {
+  if (requiresAuth && !isAuthenticated) {
     next({ name: 'Login', query: { redirect: to.fullPath } });
-    return;
-  }
-
-  // Проверка прав администратора
-  if (requiresAdmin && authStore.user?.role !== 'admin') {
+  } else if (requiresAdmin && !isAdmin) {
     next({ name: 'Dashboard' });
-    return;
+  } else {
+    next();
   }
-
-  next();
 });
 
 export default router;

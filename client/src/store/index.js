@@ -1,34 +1,24 @@
+// client/src/store/index.js
 import Vue from 'vue';
 import Vuex from 'vuex';
 
-import auth from './auth';
+// Импорт модулей
+import auth from './modules/auth';
 import equipment from './modules/equipment';
 import requests from './modules/requests';
-import notification from '../store/notification'
+import users from './modules/users';
+import dashboard from './modules/dashboard';
+import notification from './notification';
 
 Vue.use(Vuex);
 
 export default new Vuex.Store({
-  state: {
-    appLoading: false
-  },
-  mutations: {
-    SET_APP_LOADING(state, status) {
-      state.appLoading = status;
-    }
-  },
-  actions: {
-    setAppLoading({ commit }, status) {
-      commit('SET_APP_LOADING', status);
-    }
-  },
-  getters: {
-    isAppLoading: state => state.appLoading
-  },
   modules: {
     auth,
     equipment,
     requests,
+    users,
+    dashboard,
     notification
   }
 });
