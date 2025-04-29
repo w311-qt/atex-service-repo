@@ -1,7 +1,34 @@
-import { createPinia } from 'pinia';
-import piniaPluginPersistedstate from 'pinia-plugin-persistedstate';
+import Vue from 'vue';
+import Vuex from 'vuex';
 
-const pinia = createPinia();
-pinia.use(piniaPluginPersistedstate);
+import auth from './auth';
+import equipment from './modules/equipment';
+import requests from './modules/requests';
+import notification from '../store/notification'
 
-export default pinia;
+Vue.use(Vuex);
+
+export default new Vuex.Store({
+  state: {
+    appLoading: false
+  },
+  mutations: {
+    SET_APP_LOADING(state, status) {
+      state.appLoading = status;
+    }
+  },
+  actions: {
+    setAppLoading({ commit }, status) {
+      commit('SET_APP_LOADING', status);
+    }
+  },
+  getters: {
+    isAppLoading: state => state.appLoading
+  },
+  modules: {
+    auth,
+    equipment,
+    requests,
+    notification
+  }
+});

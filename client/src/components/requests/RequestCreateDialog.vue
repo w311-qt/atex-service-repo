@@ -1,185 +1,96 @@
 <template>
-  <v-dialog
-    v-model="dialog"
-    max-width="800px"
-    persistent
-    @keydown.esc="close"
-  >
+  <v-dialog v-model="dialogVisible" max-width="800px" persistent>
     <v-card>
-      <v-card-title class="headline primary white--text">
-        Создание новой заявки
-        <v-spacer></v-spacer>
-        <v-btn icon dark @click="close">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
+      <v-card-title>
+        <span class="headline">Создание новой заявки</span>
       </v-card-title>
 
-      <v-card-text class="pt-4">
-        <v-form ref="form" v-model="valid" lazy-validation>
-          <v-container>
+      <v-card-text>
+        <v-container>
+          <v-form ref="form" v-model="valid" lazy-validation>
             <v-row>
-              <!-- Заголовок заявки -->
               <v-col cols="12">
                 <v-text-field
-                  v-model="request.title"
+                  v-model="formData.title"
                   :rules="titleRules"
-                  label="Название заявки"
+                  label="Тема заявки*"
                   required
-                  outlined
-                  dense
                 ></v-text-field>
               </v-col>
 
-              <!-- Тип заявки -->
-              <v-col cols="12" md="4">
+              <v-col cols="12" sm="6">
                 <v-select
-                  v-model="request.typeId"
-                  :items="types"
+                  v-model="formData.typeId"
+                  :items="requestTypes"
+                  :rules="typeRules"
                   item-text="name"
                   item-value="id"
-                  :rules="requiredRules"
-                  label="Тип заявки"
+                  label="Тип заявки*"
                   required
-                  outlined
-                  dense
-                >
-                  <template v-slot:selection="{ item }">
-                    <v-chip
-                      small
-                      :color="getTypeColor(item)"
-                      text-color="white"
-                    >
-                      {{ item.name }}
-                    </v-chip>
-                  </template>
-                  <template v-slot:item="{ item }">
-                    <v-chip
-                      small
-                      :color="getTypeColor(item)"
-                      text-color="white"
-                      class="mr-2"
-                    ></v-chip>
-                    {{ item.name }}
-                  </template>
-                </v-select>
+                ></v-select>
               </v-col>
 
-              <!-- Приоритет заявки -->
-              <v-col cols="12" md="4">
+              <v-col cols="12" sm="6">
                 <v-select
-                  v-model="request.priorityId"
-                  :items="priorities"
+                  v-model="formData.priorityId"
+                  :items="requestPriorities"
+                  :rules="priorityRules"
                   item-text="name"
                   item-value="id"
-                  :rules="requiredRules"
-                  label="Приоритет"
+                  label="Приоритет*"
                   required
-                  outlined
-                  dense
-                >
-                  <template v-slot:selection="{ item }">
-                    <v-chip
-                      small
-                      :color="getPriorityColor(item)"
-                      text-color="white"
-                    >
-                      {{ item.name }}
-                    </v-chip>
-                  </template>
-                  <template v-slot:item="{ item }">
-                    <v-chip
-                      small
-                      :color="getPriorityColor(item)"
-                      text-color="white"
-                      class="mr-2"
-                    ></v-chip>
-                    {{ item.name }}
-                  </template>
-                </v-select>
+                ></v-select>
               </v-col>
 
-              <!-- Местоположение -->
-              <v-col cols="12" md="4">
-                <v-text-field
-                  v-model="request.location"
-                  label="Местоположение"
-                  hint="Офис, кабинет, отдел и т.д."
-                  outlined
-                  dense
-                ></v-text-field>
-              </v-col>
-
-              <!-- Оборудование -->
-              <v-col cols="12" md="6">
-                <v-autocomplete
-                  v-model="request.equipmentId"
-                  :items="equipment"
-                  item-text="displayName"
+              <v-col cols="12" sm="6">
+                <v-select
+                  v-model="formData.equipmentId"
+                  :items="equipmentList"
+                  item-text="name"
                   item-value="id"
                   label="Оборудование"
-                  placeholder="Начните вводить для поиска..."
-                  outlined
-                  dense
-                  :loading="loadingEquipment"
-                  :search-input.sync="equipmentSearch"
-                  hide-selected
                   clearable
-                  no-filter
-                  @focus="onEquipmentFocus"
-                  @blur="onEquipmentBlur"
-                >
-                  <template v-slot:item="{ item }">
-                    <v-list-item-content>
-                      <v-list-item-title>{{ item.name }} ({{ item.inventoryNumber }})</v-list-item-title>
-                      <v-list-item-subtitle>{{ item.category?.name }} | {{ item.status?.name }}</v-list-item-subtitle>
-                    </v-list-item-content>
-                  </template>
-                </v-autocomplete>
+                ></v-select>
               </v-col>
 
-              <!-- Модель картриджа (показывается только для заявок типа "Заправка картриджа") -->
-              <v-col cols="12" md="6" v-if="isCartridgeRefillRequest">
+              <v-col cols="12" sm="6">
                 <v-text-field
-                  v-model="request.cartridgeModel"
-                  :rules="isCartridgeRefillRequest ? requiredRules : []"
-                  label="Модель картриджа"
-                  hint="Укажите модель картриджа для заправки"
-                  required
-                  outlined
-                  dense
+                  v-model="formData.location"
+                  label="Местоположение"
                 ></v-text-field>
               </v-col>
 
-              <!-- Описание заявки -->
+              <!-- Показывать только для заявок типа "Заправка картриджа" -->
+              <v-col cols="12" sm="6" v-if="isCartridgeRefillType">
+                <v-text-field
+                  v-model="formData.cartridgeModel"
+                  label="Модель картриджа*"
+                  :rules="cartridgeModelRules"
+                ></v-text-field>
+              </v-col>
+
               <v-col cols="12">
                 <v-textarea
-                  v-model="request.description"
-                  label="Описание"
-                  hint="Подробно опишите проблему или требуемые действия"
-                  outlined
-                  auto-grow
+                  v-model="formData.description"
+                  label="Описание заявки"
                   rows="4"
                 ></v-textarea>
               </v-col>
             </v-row>
-          </v-container>
-        </v-form>
+          </v-form>
+        </v-container>
+        <small>*обязательные поля</small>
       </v-card-text>
 
       <v-card-actions>
         <v-spacer></v-spacer>
+        <v-btn color="blue darken-1" text @click="close">Отмена</v-btn>
         <v-btn
-          color="grey darken-1"
+          color="blue darken-1"
           text
-          @click="close"
-        >
-          Отмена
-        </v-btn>
-        <v-btn
-          color="primary"
+          @click="save"
           :disabled="!valid || loading"
           :loading="loading"
-          @click="save"
         >
           Создать
         </v-btn>
@@ -190,128 +101,156 @@
 
 <script>
 import { mapGetters } from 'vuex';
-import debounce from 'lodash/debounce';
 
 export default {
   name: 'RequestCreateDialog',
+  props: {
+    dialog: {
+      type: Boolean,
+      required: true
+    },
+    equipmentId: {
+      type: String,
+      default: null
+    }
+  },
   data() {
     return {
-      dialog: true,
-      valid: false,
+      dialogVisible: this.dialog,
+      valid: true,
       loading: false,
-      loadingEquipment: false,
-      equipment: [],
-      equipmentSearch: null,
-      request: {
+      cartridgeRefillTypeId: null, // Будет заполнено при инициализации
+      formData: {
         title: '',
-        description: '',
         typeId: '',
         priorityId: '',
-        equipmentId: null,
+        equipmentId: this.equipmentId || null,
         cartridgeModel: '',
         location: '',
+        description: ''
       },
       titleRules: [
-        v => !!v || 'Название заявки обязательно',
-        v => (v && v.length >= 3) || 'Название должно быть не менее 3 символов',
+        v => !!v || 'Тема заявки обязательна',
+        v => (v && v.length >= 5) || 'Тема должна содержать минимум 5 символов'
       ],
-      requiredRules: [
-        v => !!v || 'Поле обязательно для заполнения',
+      typeRules: [
+        v => !!v || 'Тип заявки обязателен'
       ],
+      priorityRules: [
+        v => !!v || 'Приоритет обязателен'
+      ],
+      cartridgeModelRules: [
+        v => !this.isCartridgeRefillType || !!v || 'Укажите модель картриджа'
+      ]
     };
   },
   computed: {
-    ...mapGetters({
-      types: 'requests/getTypes',
-      priorities: 'requests/getPriorities',
-      currentUser: 'auth/getUser',
-    }),
-    isCartridgeRefillRequest() {
-      // Предполагаем, что у нас есть тип заявки "Заправка картриджа"
-      const cartridgeType = this.types.find(type => type.name === 'Заправка картриджа');
-      return this.request.typeId === (cartridgeType?.id || '');
+    ...mapGetters('requests', [
+      'allRequestTypes',
+      'allRequestPriorities'
+    ]),
+    ...mapGetters('equipment', [
+      'allEquipment'
+    ]),
+    requestTypes() {
+      return this.allRequestTypes || [];
+    },
+    requestPriorities() {
+      return this.allRequestPriorities || [];
+    },
+    equipmentList() {
+      return this.allEquipment || [];
+    },
+    isCartridgeRefillType() {
+      if (!this.cartridgeRefillTypeId || !this.formData.typeId) return false;
+      return this.formData.typeId === this.cartridgeRefillTypeId;
+    }
+  },
+  watch: {
+    dialog(newVal) {
+      this.dialogVisible = newVal;
+    },
+    dialogVisible(newVal) {
+      if (!newVal) {
+        this.$emit('close');
+      }
+    },
+    equipmentId(newVal) {
+      this.formData.equipmentId = newVal;
     }
   },
   created() {
-    // При создании компонента выбираем тип и приоритет по умолчанию, если они доступны
-    this.$nextTick(() => {
-      if (this.types.length > 0) {
-        this.request.typeId = this.types[0].id;
-      }
-
-      // Выбираем средний приоритет по умолчанию
-      if (this.priorities.length > 0) {
-        const mediumPriority = this.priorities.find(p => p.name === 'Средний');
-        this.request.priorityId = mediumPriority?.id || this.priorities[0].id;
-      }
-    });
-
-    // Настраиваем функцию дебаунса для поиска оборудования
-    this.debouncedSearchEquipment = debounce(this.searchEquipment, 300);
-  },
-  watch: {
-    equipmentSearch(val) {
-      if (val) {
-        this.debouncedSearchEquipment(val);
-      }
-    }
+    // Загружаем все необходимые данные
+    this.loadData();
   },
   methods: {
+    async loadData() {
+      try {
+        // Загружаем типы заявок
+        if (this.requestTypes.length === 0) {
+          await this.$store.dispatch('requests/fetchRequestTypes');
+        }
+
+        // Загружаем приоритеты заявок
+        if (this.requestPriorities.length === 0) {
+          await this.$store.dispatch('requests/fetchRequestPriorities');
+        }
+
+        // Загружаем оборудование
+        if (this.equipmentList.length === 0) {
+          await this.$store.dispatch('equipment/fetchEquipment');
+        }
+
+        // Находим ID типа заявки "Заправка картриджа"
+        this.findCartridgeRefillTypeId();
+      } catch (error) {
+        this.$store.commit('notification/SHOW_ERROR', 'Ошибка при загрузке данных');
+      }
+    },
+
+    findCartridgeRefillTypeId() {
+      const cartridgeRefillType = this.requestTypes.find(type =>
+        type.name.toLowerCase().includes('заправка картридж')
+      );
+      if (cartridgeRefillType) {
+        this.cartridgeRefillTypeId = cartridgeRefillType.id;
+      }
+    },
+
     close() {
-      this.$emit('close');
+      this.dialogVisible = false;
+      this.resetForm();
+    },
+
+    resetForm() {
+      this.formData = {
+        title: '',
+        typeId: '',
+        priorityId: '',
+        equipmentId: this.equipmentId || null,
+        cartridgeModel: '',
+        location: '',
+        description: ''
+      };
+      if (this.$refs.form) {
+        this.$refs.form.resetValidation();
+      }
     },
 
     async save() {
-      if (!this.$refs.form.validate()) return;
-
-      this.loading = true;
-      try {
-        await this.$store.dispatch('requests/createRequest', this.request);
-        this.$emit('created');
-      } catch (error) {
-        this.$store.dispatch('notifications/showError',
-          error.response?.data?.message || 'Ошибка при создании заявки'
-        );
-      } finally {
-        this.loading = false;
-      }
-    },
-
-    getTypeColor(type) {
-      return type?.color || '#757575';
-    },
-
-    getPriorityColor(priority) {
-      return priority?.color || '#757575';
-    },
-
-    async onEquipmentFocus() {
-      // При фокусе на поле загружаем начальный список оборудования
-      if (this.equipment.length === 0) {
-        await this.searchEquipment('');
-      }
-    },
-
-    onEquipmentBlur() {
-      // Можно добавить логику, если необходимо
-    },
-
-    async searchEquipment(query) {
-      this.loadingEquipment = true;
-      try {
-        const response = await this.$store.dispatch('equipment/searchEquipment', {
-          search: query,
-          limit: 10
-        });
-
-        this.equipment = response.data.map(item => ({
-          ...item,
-          displayName: `${item.name} (${item.inventoryNumber})`
-        }));
-      } catch (error) {
-        console.error('Error searching equipment:', error);
-      } finally {
-        this.loadingEquipment = false;
+      if (this.$refs.form.validate()) {
+        this.loading = true;
+        try {
+          await this.$store.dispatch('requests/createRequest', this.formData);
+          this.$store.commit('notification/SHOW_SUCCESS', 'Заявка успешно создана');
+          this.$emit('saved');
+          this.close();
+        } catch (error) {
+          const errorMessage = error.message || 'Ошибка при создании заявки';
+          this.$store.commit('notification/SHOW_ERROR', errorMessage);
+        } finally {
+          this.loading = false;
+        }
       }
     }
   }

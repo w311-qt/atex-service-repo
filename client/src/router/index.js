@@ -1,5 +1,7 @@
+import Vue from 'vue';
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/store/auth';
+import store from '@/store';
 
 // Layouts
 import MainLayout from '@/layouts/MainLayout.vue';
@@ -18,6 +20,8 @@ const Reports = () => import('@/views/Reports.vue');
 const Profile = () => import('@/views/Profile.vue');
 const Settings = () => import('@/views/Settings.vue');
 const NotFound = () => import('@/views/NotFound.vue');
+
+Vue.use(VueRouter);
 
 const routes = [
   {

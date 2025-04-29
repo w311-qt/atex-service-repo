@@ -1,56 +1,39 @@
 <template>
-  <v-dialog
-    v-model="dialog"
-    max-width="600px"
-    persistent
-    @keydown.esc="close"
-  >
+  <v-dialog v-model="dialogVisible" max-width="600px" persistent>
     <v-card>
-      <v-card-title class="headline primary white--text">
-        Изменение статуса заявки
-        <v-spacer></v-spacer>
-        <v-btn icon dark @click="close">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
+      <v-card-title>
+        <span class="headline">Изменение статуса заявки</span>
       </v-card-title>
 
-      <v-card-text class="pt-4">
-        <v-form ref="form" v-model="valid" lazy-validation>
-          <v-container>
+      <v-card-text>
+        <v-container>
+          <v-form ref="form" v-model="valid" lazy-validation>
             <v-row>
               <v-col cols="12">
-                <div class="subtitle-1 mb-2">Текущий статус:</div>
+                <div class="subtitle-2 mb-2">Текущий статус:</div>
                 <v-chip
                   :color="getCurrentStatusColor()"
                   text-color="white"
                   class="mb-4"
                 >
-                  {{ request.status.name }}
+                  {{ getCurrentStatusName() }}
                 </v-chip>
               </v-col>
 
               <v-col cols="12">
                 <v-select
-                  v-model="statusData.statusId"
-                  :items="allowedStatuses"
+                  v-model="formData.statusId"
+                  :items="availableStatuses"
+                  :rules="statusRules"
                   item-text="name"
                   item-value="id"
-                  :rules="requiredRules"
-                  label="Новый статус"
+                  label="Новый статус*"
                   required
-                  outlined
                 >
-                  <template v-slot:selection="{ item }">
-                    <v-chip
-                      :color="getStatusColor(item)"
-                      text-color="white"
-                    >
-                      {{ item.name }}
-                    </v-chip>
-                  </template>
                   <template v-slot:item="{ item }">
                     <v-chip
-                      :color="getStatusColor(item)"
+                      small
+                      :color="item.color || 'grey'"
                       text-color="white"
                       class="mr-2"
                     ></v-chip>
@@ -61,33 +44,26 @@
 
               <v-col cols="12">
                 <v-textarea
-                  v-model="statusData.comment"
+                  v-model="formData.comment"
                   label="Комментарий"
-                  hint="Добавьте комментарий к изменению статуса"
-                  outlined
-                  auto-grow
                   rows="3"
+                  placeholder="Добавьте комментарий о причине изменения статуса..."
                 ></v-textarea>
               </v-col>
             </v-row>
-          </v-container>
-        </v-form>
+          </v-form>
+        </v-container>
       </v-card-text>
 
       <v-card-actions>
         <v-spacer></v-spacer>
+        <v-btn color="blue darken-1" text @click="close">Отмена</v-btn>
         <v-btn
-          color="grey darken-1"
+          color="blue darken-1"
           text
-          @click="close"
-        >
-          Отмена
-        </v-btn>
-        <v-btn
-          color="primary"
-          :disabled="!valid || !statusData.statusId || loading"
+          @click="saveStatus"
+          :disabled="!valid || loading"
           :loading="loading"
-          @click="changeStatus"
         >
           Сохранить
         </v-btn>
@@ -102,6 +78,10 @@ import { mapGetters } from 'vuex';
 export default {
   name: 'RequestStatusDialog',
   props: {
+    dialog: {
+      type: Boolean,
+      required: true
+    },
     request: {
       type: Object,
       required: true
@@ -109,76 +89,173 @@ export default {
   },
   data() {
     return {
-      dialog: true,
-      valid: false,
+      dialogVisible: this.dialog,
+      valid: true,
       loading: false,
-      statusData: {
+      formData: {
         statusId: '',
         comment: ''
       },
-      requiredRules: [
-        v => !!v || 'Поле обязательно для заполнения',
-      ]
+      statusRules: [
+        v => !!v || 'Статус обязателен'
+      ],
+      // Карта допустимых переходов статусов
+      allowedTransitions: {
+        // ID текущего статуса -> массив ID допустимых новых статусов
+      }
     };
   },
   computed: {
-    ...mapGetters({
-      statuses: 'requests/getStatuses',
-      currentUser: 'auth/getUser',
-    }),
-    allowedStatuses() {
-      // Определяем, какие статусы доступны для перехода из текущего статуса заявки
+    ...mapGetters('requests', [
+      'allRequestStatuses',
+      'requestStatusById'
+    ]),
+    requestStatuses() {
+      return this.allRequestStatuses || [];
+    },
+    // Фильтрация статусов, на которые можно переключить текущую заявку
+    availableStatuses() {
+      if (!this.request || !this.request.statusId) return [];
+
+      // Получаем текущий статус заявки
       const currentStatusId = this.request.statusId;
-      const currentStatus = this.request.status?.name;
 
-      // Определение разрешенных переходов статусов
-      // Этот объект содержит правила переходов из одного статуса в другой
-      const allowedTransitions = {
-        'Новая': ['В работе', 'Отменена'],
-        'В работе': ['Ожидает', 'Выполнена', 'Отменена'],
-        'Ожидает': ['В работе', 'Выполнена', 'Отменена'],
-        'Выполнена': [], // Нет разрешенных переходов из статуса "Выполнена"
-        'Отменена': []  // Нет разрешенных переходов из статуса "Отменена"
-      };
+      // Если у нас есть карта допустимых переходов, фильтруем по ней
+      if (this.allowedTransitions[currentStatusId]) {
+        return this.requestStatuses.filter(status =>
+          this.allowedTransitions[currentStatusId].includes(status.id) &&
+          status.id !== currentStatusId
+        );
+      }
 
-      const allowedStatusNames = allowedTransitions[currentStatus] || [];
-
-      // Фильтруем статусы, которые разрешены для перехода
-      return this.statuses.filter(status =>
-        allowedStatusNames.includes(status.name) && status.id !== currentStatusId
-      );
+      // Если карты нет или она пуста, разрешаем все статусы, кроме текущего
+      return this.requestStatuses.filter(status => status.id !== currentStatusId);
     }
   },
+  watch: {
+    dialog(newVal) {
+      this.dialogVisible = newVal;
+    },
+    dialogVisible(newVal) {
+      if (!newVal) {
+        this.$emit('close');
+      }
+    },
+    request: {
+      handler(newVal) {
+        if (newVal && newVal.statusId) {
+          // При изменении заявки, сбрасываем выбранный статус
+          this.formData.statusId = '';
+          this.formData.comment = '';
+        }
+      },
+      immediate: true
+    }
+  },
+  created() {
+    // Загружаем статусы заявок, если еще не загружены
+    if (this.requestStatuses.length === 0) {
+      this.$store.dispatch('requests/fetchRequestStatuses');
+    }
+
+    // Инициализация карты допустимых переходов статусов
+    // Это можно настроить в соответствии с бизнес-логикой
+    this.initializeStatusTransitions();
+  },
   methods: {
-    close() {
-      this.$emit('close');
+    initializeStatusTransitions() {
+      // Эта функция инициализирует карту допустимых переходов статусов
+      // Пример: из статуса "Новая" можно перейти в "В работе" или "Отменена"
+
+      // Сначала получим ID статусов из их имен (предполагается, что имена уникальны)
+      this.$store.dispatch('requests/fetchRequestStatuses').then(() => {
+        const statuses = this.requestStatuses;
+
+        const findStatusIdByName = (name) => {
+          const status = statuses.find(s => s.name === name);
+          return status ? status.id : null;
+        };
+
+        const newStatusId = findStatusIdByName('Новая');
+        const inProgressStatusId = findStatusIdByName('В работе');
+        const waitingStatusId = findStatusIdByName('Ожидает');
+        const completedStatusId = findStatusIdByName('Выполнена');
+        const canceledStatusId = findStatusIdByName('Отменена');
+
+        // Определяем допустимые переходы
+        if (newStatusId) {
+          this.allowedTransitions[newStatusId] = [
+            inProgressStatusId,
+            canceledStatusId
+          ].filter(Boolean);
+        }
+
+        if (inProgressStatusId) {
+          this.allowedTransitions[inProgressStatusId] = [
+            waitingStatusId,
+            completedStatusId,
+            canceledStatusId
+          ].filter(Boolean);
+        }
+
+        if (waitingStatusId) {
+          this.allowedTransitions[waitingStatusId] = [
+            inProgressStatusId,
+            completedStatusId,
+            canceledStatusId
+          ].filter(Boolean);
+        }
+
+        // Из конечных статусов переходы не разрешены
+        if (completedStatusId) {
+          this.allowedTransitions[completedStatusId] = [];
+        }
+
+        if (canceledStatusId) {
+          this.allowedTransitions[canceledStatusId] = [];
+        }
+      });
     },
 
-    async changeStatus() {
-      if (!this.$refs.form.validate()) return;
-
-      this.loading = true;
-      try {
-        await this.$store.dispatch('requests/changeRequestStatus', {
-          id: this.request.id,
-          data: this.statusData
-        });
-        this.$emit('status-changed');
-      } catch (error) {
-        this.$store.dispatch('notifications/showError',
-          error.response?.data?.message || 'Ошибка при изменении статуса заявки'
-        );
-      } finally {
-        this.loading = false;
-      }
+    getCurrentStatusName() {
+      if (!this.request || !this.request.status) return 'Не указан';
+      return this.request.status.name;
     },
 
     getCurrentStatusColor() {
-      return this.request.status?.color || '#757575';
+      if (!this.request || !this.request.status) return 'grey';
+      return this.request.status.color || 'blue';
     },
 
-    getStatusColor(status) {
-      return status?.color || '#757575';
+    close() {
+      this.dialogVisible = false;
+      this.formData.statusId = '';
+      this.formData.comment = '';
+      if (this.$refs.form) {
+        this.$refs.form.resetValidation();
+      }
+    },
+
+    async saveStatus() {
+      if (this.$refs.form.validate()) {
+        this.loading = true;
+        try {
+          await this.$store.dispatch('requests/changeRequestStatus', {
+            id: this.request.id,
+            statusId: this.formData.statusId,
+            comment: this.formData.comment
+          });
+
+          this.$store.commit('notification/SHOW_SUCCESS', 'Статус заявки успешно изменен');
+          this.$emit('updated');
+          this.close();
+        } catch (error) {
+          const errorMessage = error.message || 'Ошибка при изменении статуса';
+          this.$store.commit('notification/SHOW_ERROR', errorMessage);
+        } finally {
+          this.loading = false;
+        }
+      }
     }
   }
 };
