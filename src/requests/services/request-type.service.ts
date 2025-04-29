@@ -37,7 +37,9 @@ export class RequestTypeService {
     });
 
     if (existingType) {
-      throw new ConflictException(`Request type with name "${createRequestTypeDto.name}" already exists`);
+      throw new ConflictException(
+        `Request type with name "${createRequestTypeDto.name}" already exists`,
+      );
     }
 
     const requestType = this.requestTypeRepository.create(createRequestTypeDto);
@@ -54,7 +56,9 @@ export class RequestTypeService {
       });
 
       if (existingType) {
-        throw new ConflictException(`Request type with name "${updateRequestTypeDto.name}" already exists`);
+        throw new ConflictException(
+          `Request type with name "${updateRequestTypeDto.name}" already exists`,
+        );
       }
     }
 
