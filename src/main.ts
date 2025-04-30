@@ -29,7 +29,11 @@ async function bootstrap() {
 
   // Enable CORS for development
   if (environment !== 'production') {
-    app.enableCors();
+    app.enableCors({
+      origin: process.env.FRONTEND_URL || 'http://localhost:8080',
+      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+      credentials: true,
+    });
   }
 
   // Start the server

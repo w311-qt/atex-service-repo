@@ -5,7 +5,6 @@
         <v-col cols="12">
           <h1 class="text-h4 mb-4">Управление заявками</h1>
 
-          <!-- Панель фильтров -->
           <v-card class="mb-4">
             <v-card-title>
               <v-icon left>mdi-filter</v-icon>
@@ -63,7 +62,6 @@
             </v-card-text>
           </v-card>
 
-          <!-- Кнопка создания заявки -->
           <v-btn
             color="primary"
             class="mb-4"
@@ -74,7 +72,6 @@
             Создать заявку
           </v-btn>
 
-          <!-- Таблица заявок -->
           <v-data-table
             :headers="headers"
             :items="requests"
@@ -87,14 +84,12 @@
             @update:options="onOptionsChange"
             class="elevation-1"
           >
-            <!-- Столбец номера заявки -->
             <template v-slot:item.number="{ item }">
               <a @click="openRequestDetails(item.id)" class="request-link">
                 {{ item.number }}
               </a>
             </template>
 
-            <!-- Столбец статуса -->
             <template v-slot:item.status="{ item }">
               <v-chip
                 :color="getStatusColor(item.status)"
@@ -105,7 +100,6 @@
               </v-chip>
             </template>
 
-            <!-- Столбец приоритета -->
             <template v-slot:item.priority="{ item }">
               <v-chip
                 :color="getPriorityColor(item.priority)"
@@ -116,7 +110,6 @@
               </v-chip>
             </template>
 
-            <!-- Столбец типа заявки -->
             <template v-slot:item.type="{ item }">
               <v-chip
                 :color="getTypeColor(item.type)"
@@ -127,12 +120,10 @@
               </v-chip>
             </template>
 
-            <!-- Столбец даты создания -->
             <template v-slot:item.createdAt="{ item }">
               {{ formatDate(item.createdAt) }}
             </template>
 
-            <!-- Столбец действий -->
             <template v-slot:item.actions="{ item }">
               <v-btn
                 icon
@@ -175,14 +166,12 @@
       </v-row>
     </v-container>
 
-    <!-- Диалог создания заявки -->
     <RequestCreateDialog
       v-if="showCreateDialog"
       @close="showCreateDialog = false"
       @created="onRequestCreated"
     />
 
-    <!-- Диалог редактирования заявки -->
     <RequestEditDialog
       v-if="showEditDialog"
       :request="selectedRequest"
@@ -190,7 +179,6 @@
       @updated="onRequestUpdated"
     />
 
-    <!-- Диалог изменения статуса -->
     <RequestStatusDialog
       v-if="showStatusDialog"
       :request="selectedRequest"
@@ -198,7 +186,6 @@
       @status-changed="onStatusChanged"
     />
 
-    <!-- Диалог назначения исполнителя -->
     <RequestAssignDialog
       v-if="showAssignDialog"
       :request="selectedRequest"
@@ -206,7 +193,6 @@
       @assigned="onRequestAssigned"
     />
 
-    <!-- Диалог расширенного фильтра -->
     <RequestFilterDialog
       v-if="showFilterDialog"
       :current-filters="filters"
@@ -314,7 +300,6 @@ export default {
       try {
         const { page, itemsPerPage, sortBy, sortDesc } = this.options;
 
-        // Формируем параметры для API запроса
         const params = {
           page,
           limit: itemsPerPage,
@@ -385,7 +370,7 @@ export default {
     applyAdvancedFilters(newFilters) {
       this.filters = { ...this.filters, ...newFilters };
       this.showFilterDialog = false;
-      this.options.page = 1; // Сбрасываем на первую страницу
+      this.options.page = 1;
       this.loadRequests();
     },
 
