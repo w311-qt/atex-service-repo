@@ -17,7 +17,6 @@
     </v-card>
 
     <v-row>
-      <!-- Статистические карточки -->
       <v-col cols="12" sm="6" md="3">
         <v-card color="primary" dark>
           <v-card-text>
@@ -67,7 +66,6 @@
       </v-col>
     </v-row>
 
-    <!-- Графики и аналитика -->
     <v-row class="mt-4">
       <v-col cols="12" md="6">
         <v-card outlined height="100%">
@@ -344,23 +342,18 @@ export default {
     async fetchDashboardData() {
       this.loading = true;
       try {
-        // Получаем общую статистику
         const statsResponse = await this.$store.dispatch('dashboard/fetchStatistics');
         this.stats = statsResponse;
 
-        // Получаем последние заявки
         const requestsResponse = await this.$store.dispatch('dashboard/fetchRecentRequests');
         this.recentRequests = requestsResponse;
 
-        // Получаем последние активности
         const activitiesResponse = await this.$store.dispatch('dashboard/fetchRecentActivities');
         this.recentActivities = activitiesResponse;
 
-        // Получаем оборудование, требующее внимания
         const attentionResponse = await this.$store.dispatch('dashboard/fetchAttentionEquipment');
         this.attentionEquipment = attentionResponse;
 
-        // Загружаем справочники, если их еще нет
         if (this.allCategories.length === 0) {
           await this.$store.dispatch('equipment/fetchCategories');
         }
@@ -368,7 +361,6 @@ export default {
           await this.$store.dispatch('equipment/fetchStatuses');
         }
 
-        // Обновляем графики после получения данных
         this.$nextTick(() => {
           this.renderCharts();
         });
@@ -395,14 +387,12 @@ export default {
     renderCategoryChart() {
       if (!this.$refs.categoryChart) return;
 
-      // Уничтожаем предыдущий экземпляр графика, если он существует
       if (this.categoryChart) {
         this.categoryChart.destroy();
       }
 
       const ctx = this.$refs.categoryChart.getContext('2d');
 
-      // Формируем данные для графика из статистики
       const categoryData = this.stats.categoryStats || [];
       const labels = categoryData.map(item => item.category);
       const data = categoryData.map(item => item.count);
@@ -448,14 +438,12 @@ export default {
     renderStatusChart() {
       if (!this.$refs.statusChart) return;
 
-      // Уничтожаем предыдущий экземпляр графика, если он существует
       if (this.statusChart) {
         this.statusChart.destroy();
       }
 
       const ctx = this.$refs.statusChart.getContext('2d');
 
-      // Формируем данные для графика из статистики
       const statusData = this.stats.statusStats || [];
       const labels = statusData.map(item => item.status);
       const data = statusData.map(item => item.count);
@@ -575,7 +563,6 @@ export default {
         return colors.slice(0, count);
       }
 
-      // Если нужно больше цветов, генерируем их случайным образом
       const result = [...colors];
       for (let i = colors.length; i < count; i++) {
         const r = Math.floor(Math.random() * 200) + 20;
@@ -632,12 +619,10 @@ export default {
 }
 
 .requests-table, .equipment-table {
-  /* Убираем внешние отступы таблицы для лучшего внешнего вида */
   margin: 0 !important;
   width: 100%;
 }
 
-/* Установка высоты для контейнера графика */
 canvas {
   height: 250px !important;
 }

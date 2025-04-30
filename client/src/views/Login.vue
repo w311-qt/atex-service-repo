@@ -6,7 +6,7 @@
         <v-card class="elevation-12 rounded-lg">
           <v-card-title class="headline primary white--text py-4 justify-center">
             <v-img src="@/assets/logo.png" max-width="40" class="mr-2"></v-img>
-            ATEX-Электро: Система Инвентаризации
+            ATEX-Электро: Система Учета и Заявок
           </v-card-title>
 
           <v-card-text class="pt-6">
@@ -125,17 +125,14 @@ export default {
       this.errorMessage = '';
 
       try {
-        // Здесь будет вызов API для аутентификации
         // const response = await this.$store.dispatch('auth/login', {
         //   email: this.email,
         //   password: this.password,
         //   rememberMe: this.rememberMe
         // });
 
-        // Имитация задержки запроса
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Редирект на дашборд при успешной аутентификации
         this.$router.push('/');
       } catch (error) {
         console.error('Login error:', error);

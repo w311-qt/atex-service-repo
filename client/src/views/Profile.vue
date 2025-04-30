@@ -8,7 +8,6 @@
 
     <v-row>
       <v-col cols="12" md="4">
-        <!-- Карточка с основной информацией о пользователе -->
         <v-card outlined class="mb-4">
           <v-card-text class="text-center pa-6">
             <v-avatar size="120" color="primary" class="mb-4">
@@ -26,7 +25,6 @@
           </v-card-text>
         </v-card>
 
-        <!-- Карточка с рабочей информацией -->
         <v-card outlined>
           <v-card-title class="py-2 grey lighten-4">
             <v-icon left color="primary">mdi-briefcase</v-icon>
@@ -56,7 +54,6 @@
       </v-col>
 
       <v-col cols="12" md="8">
-        <!-- Форма редактирования профиля -->
         <v-card outlined class="mb-4">
           <v-card-title class="py-2 grey lighten-4">
             <v-icon left color="primary">mdi-account-edit</v-icon>
@@ -107,7 +104,6 @@
           </v-card-text>
         </v-card>
 
-        <!-- Форма изменения пароля -->
         <v-card outlined>
           <v-card-title class="py-2 grey lighten-4">
             <v-icon left color="primary">mdi-lock</v-icon>
@@ -235,7 +231,6 @@ export default {
   methods: {
     async fetchUserProfile() {
       try {
-        // Если данных пользователя нет в хранилище, запрашиваем их
         if (!this.user.id) {
           await this.$store.dispatch('auth/fetchCurrentUser');
         }
@@ -278,7 +273,6 @@ export default {
           newPassword: this.passwordData.newPassword
         });
 
-        // Очищаем форму после успешного изменения
         this.passwordData = {
           currentPassword: '',
           newPassword: '',

@@ -156,7 +156,6 @@
       </v-data-table>
     </v-card>
 
-    <!-- Диалог создания/редактирования пользователя -->
     <v-dialog
       v-model="dialog"
       max-width="600px"
@@ -245,7 +244,6 @@
       </v-card>
     </v-dialog>
 
-    <!-- Диалог сброса пароля -->
     <v-dialog
       v-model="resetDialog"
       max-width="500px"
@@ -289,7 +287,6 @@
       </v-card>
     </v-dialog>
 
-    <!-- Диалог подтверждения блокировки/разблокировки -->
     <v-dialog
       v-model="statusDialog"
       max-width="500px"
@@ -642,7 +639,6 @@ export default {
     }
   },
   beforeDestroy() {
-    // Очищаем debounce-функцию
     this.debouncedFilter.cancel();
   }
 };

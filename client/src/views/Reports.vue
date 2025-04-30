@@ -7,7 +7,6 @@
     </v-card>
 
     <v-row>
-      <!-- Выбор отчета и параметров -->
       <v-col cols="12" md="3">
         <v-card outlined class="mb-4">
           <v-card-title class="py-2 grey lighten-4">
@@ -24,7 +23,6 @@
 
             <v-divider class="my-4"></v-divider>
 
-            <!-- Параметры для отчета по оборудованию -->
             <div v-if="selectedReportType === 'equipment'">
               <v-select
                 v-model="equipmentParams.categoryIds"
@@ -799,7 +797,6 @@ export default {
     },
 
     destroyCharts() {
-      // Удаляем старые экземпляры диаграмм
       Object.keys(this.charts).forEach(key => {
         if (this.charts[key]) {
           this.charts[key].destroy();
@@ -819,12 +816,10 @@ export default {
           params = this.requestParams;
         }
 
-        // Имитация запроса к API для экспорта
         this.$store.dispatch('reports/exportReport', {
           type: this.selectedReportType,
           params
         }).then(response => {
-          // Создание и загрузка файла
           const url = window.URL.createObjectURL(new Blob([response.data]));
           const link = document.createElement('a');
           link.href = url;
@@ -877,7 +872,6 @@ export default {
         return colors.slice(0, count);
       }
 
-      // Если нужно больше цветов, генерируем их случайным образом
       const result = [...colors];
       for (let i = colors.length; i < count; i++) {
         const r = Math.floor(Math.random() * 200) + 20;
