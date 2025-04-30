@@ -1,4 +1,3 @@
-<!-- client/src/layouts/MainLayout.vue -->
 <template>
   <v-app>
     <!-- App Bar (верхняя панель) -->

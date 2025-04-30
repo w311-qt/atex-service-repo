@@ -7,8 +7,7 @@ import auth from './modules/auth';
 import equipment from './modules/equipment';
 import requests from './modules/requests';
 import users from './modules/users';
-import dashboard from './modules/dashboard';
-import notification from './notification';
+import notification from './modules/notification';
 
 Vue.use(Vuex);
 
@@ -18,7 +17,6 @@ export default new Vuex.Store({
     equipment,
     requests,
     users,
-    dashboard,
     notification
   }
 });
