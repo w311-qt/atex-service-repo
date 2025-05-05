@@ -1,3 +1,4 @@
+// client/src/router/index.js
 import Vue from 'vue';
 import VueRouter from 'vue-router';
 import store from '@/store';
@@ -8,30 +9,37 @@ import BlankLayout from '@/layouts/BlankLayout.vue';
 
 // Views
 import Login from '@/views/Login.vue';
+import NotFound from '@/views/NotFound.vue';
 import Dashboard from '@/views/Dashboard.vue';
+import Profile from '@/views/Profile.vue';
+import Settings from '@/views/Settings.vue';
+import Users from '@/views/Users.vue';
+
+// Equipment views
 import EquipmentList from '@/views/equipment/EquipmentList.vue';
 import EquipmentDetails from '@/views/equipment/EquipmentDetails.vue';
 import CategoryList from '@/views/equipment/CategoryList.vue';
 import StatusList from '@/views/equipment/StatusList.vue';
-import RequestList from '@/views/requests/RequestList.vue';
+
+// Request views
+import RequestList from '@/views/RequestListView.vue';
 import RequestDetails from '@/views/requests/RequestDetails.vue';
-import Profile from '@/views/Profile.vue';
-import Settings from '@/views/Settings.vue';
 import Reports from '@/views/Reports.vue';
-import Users from '@/views/Users.vue';
-import NotFound from '@/views/NotFound.vue';
 
 Vue.use(VueRouter);
 
 const routes = [
   {
     path: '/login',
-    name: 'Login',
-    component: Login,
-    meta: {
-      layout: BlankLayout,
-      requiresAuth: false
-    }
+    component: BlankLayout,
+    children: [
+      {
+        path: '',
+        name: 'Login',
+        component: Login,
+        meta: { requiresAuth: false }
+      }
+    ]
   },
   {
     path: '/',
@@ -43,6 +51,25 @@ const routes = [
         name: 'Dashboard',
         component: Dashboard
       },
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: Profile
+      },
+      {
+        path: 'settings',
+        name: 'Settings',
+        component: Settings,
+        meta: { requiresAdmin: true }
+      },
+      {
+        path: 'users',
+        name: 'Users',
+        component: Users,
+        meta: { requiresAdmin: true }
+      },
+
+      // Equipment routes
       {
         path: 'equipment',
         name: 'EquipmentList',
@@ -57,13 +84,17 @@ const routes = [
       {
         path: 'equipment/categories',
         name: 'CategoryList',
-        component: CategoryList
+        component: CategoryList,
+        meta: { requiresAdmin: true }
       },
       {
         path: 'equipment/statuses',
         name: 'StatusList',
-        component: StatusList
+        component: StatusList,
+        meta: { requiresAdmin: true }
       },
+
+      // Request routes
       {
         path: 'requests',
         name: 'RequestList',
@@ -76,33 +107,23 @@ const routes = [
         props: true
       },
       {
-        path: 'profile',
-        name: 'Profile',
-        component: Profile
-      },
-      {
-        path: 'settings',
-        name: 'Settings',
-        component: Settings,
-        meta: { requiresAdmin: true }
-      },
-      {
         path: 'reports',
         name: 'Reports',
         component: Reports
-      },
-      {
-        path: 'users',
-        name: 'Users',
-        component: Users,
-        meta: { requiresAdmin: true }
       }
     ]
   },
   {
+    // 404 page
     path: '*',
-    name: 'NotFound',
-    component: NotFound
+    component: BlankLayout,
+    children: [
+      {
+        path: '',
+        name: 'NotFound',
+        component: NotFound
+      }
+    ]
   }
 ];
 
@@ -112,20 +133,37 @@ const router = new VueRouter({
   routes
 });
 
-// Навигационный guard для проверки авторизации
-router.beforeEach((to, from, next) => {
+// Navigation guard для проверки авторизации
+router.beforeEach(async (to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin);
-  const isAuthenticated = store.getters['auth/isAuthenticated'];
-  const isAdmin = store.getters['auth/isAdmin'];
 
-  if (requiresAuth && !isAuthenticated) {
-    next({ name: 'Login', query: { redirect: to.fullPath } });
-  } else if (requiresAdmin && !isAdmin) {
-    next({ name: 'Dashboard' });
-  } else {
-    next();
+  // Проверяем аутентификацию только для маршрутов, требующих авторизации
+  if (requiresAuth) {
+    const isAuthenticated = store.getters['auth/isAuthenticated'];
+
+    if (!isAuthenticated) {
+      // Если пользователь не аутентифицирован, перенаправляем на страницу входа
+      return next({
+        path: '/login',
+        query: { redirect: to.fullPath }
+      });
+    }
+
+    // Проверяем права администратора для маршрутов, требующих прав администратора
+    if (requiresAdmin && !store.getters['auth/isAdmin']) {
+      // Если пользователь не администратор, перенаправляем на дашборд
+      return next({ path: '/' });
+    }
   }
+
+  // Если пользователь аутентифицирован и пытается открыть страницу логина,
+  // перенаправляем на дашборд
+  if (to.path === '/login' && store.getters['auth/isAuthenticated']) {
+    return next({ path: '/' });
+  }
+
+  next();
 });
 
 export default router;

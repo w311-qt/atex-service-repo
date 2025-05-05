@@ -18,7 +18,7 @@
           <v-card-actions class="justify-center">
             <v-btn
               color="primary"
-              variant="elevated"
+              elevation="2"
               :to="{ name: 'Dashboard' }"
             >
               Вернуться на главную
