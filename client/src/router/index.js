@@ -23,7 +23,7 @@ import StatusList from '@/views/equipment/StatusList.vue';
 
 // Request views
 import RequestList from '@/views/RequestListView.vue';
-import RequestDetails from '@/views/requests/RequestDetails.vue';
+//import RequestDetails from '@/views/requests/RequestDetails.vue';
 import Reports from '@/views/Reports.vue';
 
 Vue.use(VueRouter);
@@ -100,12 +100,7 @@ const routes = [
         name: 'RequestList',
         component: RequestList
       },
-      {
-        path: 'requests/:id',
-        name: 'RequestDetails',
-        component: RequestDetails,
-        props: true
-      },
+
       {
         path: 'reports',
         name: 'Reports',
