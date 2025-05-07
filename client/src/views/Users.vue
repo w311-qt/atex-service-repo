@@ -327,7 +327,7 @@ import { mapGetters } from 'vuex';
 import debounce from 'lodash/debounce';
 
 export default {
-  name: 'Users',
+  name: 'UsersView',
   data() {
     return {
       loading: false,

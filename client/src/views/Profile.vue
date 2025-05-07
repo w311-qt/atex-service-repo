@@ -160,7 +160,7 @@
 import { mapGetters } from 'vuex';
 
 export default {
-  name: 'Profile',
+  name: 'ProfileView',
   data() {
     return {
       valid: true,

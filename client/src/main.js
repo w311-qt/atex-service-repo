@@ -53,13 +53,21 @@ new Vue({
 
   // Проверка авторизации при запуске
   async created() {
-    // Проверка аутентификации при загрузке приложения
-    if (store.getters['auth/isAuthenticated']) {
-      try {
-        await store.dispatch('auth/checkAuth');
-      } catch (error) {
-        console.error('Ошибка проверки авторизации:', error);
+    const fakeUser = {
+      id: 'test-user-id',
+      name: 'Тестовый пользователь',
+      email: 'test@example.com',
+      role: 'admin'
+    };
+
+    const fakeToken = 'fake-jwt-token';
+
+    localStorage.setItem('auth_token', fakeToken);
+    localStorage.setItem('auth_user', JSON.stringify(fakeUser));
+
+    // Устанавливаем состояние в store
+    this.$store.commit('auth/SET_AUTH_DATA', { token: fakeToken, user: fakeUser });
+
+    console.log('Установлены фейковые данные авторизации');
       }
-    }
-  }
 }).$mount('#app');

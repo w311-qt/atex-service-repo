@@ -290,7 +290,7 @@ import { mapGetters } from 'vuex';
 import Chart from 'chart.js/auto';
 
 export default {
-  name: 'Dashboard',
+  name: 'DashboardView',
   data() {
     return {
       loading: true,

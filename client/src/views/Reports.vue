@@ -510,7 +510,7 @@ import { mapGetters } from 'vuex';
 import Chart from 'chart.js/auto';
 
 export default {
-  name: 'Reports',
+  name: 'ReportsView',
   data() {
     return {
       loading: false,
@@ -828,10 +828,12 @@ export default {
           link.click();
           document.body.removeChild(link);
         }).catch(error => {
-          this.$store.commit('notification/SHOW_ERROR', 'Ошибка при экспорте отчета');
+          console.error('Export error:', error); // Use the error variable
+          this.$store.commit('notification/SHOW_ERROR', `Ошибка при экспорте отчета: ${error.message || 'Неизвестная ошибка'}`);
         });
       } catch (error) {
-        this.$store.commit('notification/SHOW_ERROR', 'Ошибка при экспорте отчета');
+        console.error('Export error:', error); // Use the error variable
+        this.$store.commit('notification/SHOW_ERROR', `Ошибка при экспорте отчета: ${error.message || 'Неизвестная ошибка'}`);
       }
     },
 

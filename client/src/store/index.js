@@ -3,7 +3,6 @@ import Vue from 'vue';
 import Vuex from 'vuex';
 
 // Импорт модулей
-import auth from './modules/auth';
 import equipment from './modules/equipment';
 import requests from './modules/requests';
 import users from './modules/users';
@@ -13,7 +12,6 @@ Vue.use(Vuex);
 
 export default new Vuex.Store({
   modules: {
-    auth,
     equipment,
     requests,
     users,

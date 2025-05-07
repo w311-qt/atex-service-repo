@@ -88,6 +88,7 @@
 </template>
 
 <script>
+// Modified Login.vue script section
 export default {
   name: 'Login',
 
@@ -98,16 +99,7 @@ export default {
       showPassword: false,
       rememberMe: false,
       isLoading: false,
-      errorMessage: '',
-
-      emailRules: [
-        v => !!v || 'Email обязателен',
-        v => /.+@.+\..+/.test(v) || 'Email должен быть корректным'
-      ],
-      passwordRules: [
-        v => !!v || 'Пароль обязателен',
-        v => v.length >= 6 || 'Пароль должен содержать не менее 6 символов'
-      ]
+      errorMessage: ''
     };
   },
 
@@ -118,28 +110,30 @@ export default {
   },
 
   methods: {
-    async login() {
-      if (!this.$refs.form.validate()) return;
+    async onSubmit() {
+      // Всегда считаем форму валидной
+      this.loading = true;
 
-      this.isLoading = true;
-      this.errorMessage = '';
-
-      try {
-        // const response = await this.$store.dispatch('auth/login', {
-        //   email: this.email,
-        //   password: this.password,
-        //   rememberMe: this.rememberMe
-        // });
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
+      setTimeout(() => {
+        // Имитируем успешный вход
+        this.$store.dispatch('auth/login', {
+          email: this.email || 'test@example.com',
+          password: this.password || 'password'
+        })
+          .then(() => {
+            // Перенаправляем на главную
+            this.$router.push('/');
+          })
+          .finally(() => {
+            this.loading = false;
+          });
+      }, 500); // Добавляем небольшую задержку для реалистичности
+    },
+    mounted() {
+      // Автоматически перенаправляем на главную через 1 секунду
+      setTimeout(() => {
         this.$router.push('/');
-      } catch (error) {
-        console.error('Login error:', error);
-        this.errorMessage = error.response?.data?.message || 'Ошибка входа. Проверьте учетные данные.';
-      } finally {
-        this.isLoading = false;
-      }
+      }, 1000);
     }
   }
 };

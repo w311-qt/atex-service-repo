@@ -31,39 +31,51 @@ const state = {
 };
 
 const getters = {
-  isAuthenticated: state => !!state.token,
-  isAdmin: state => state.user && state.user.role === 'admin',
-  isTechnician: state => state.user && state.user.role === 'technician',
-  isUser: state => state.user && state.user.role === 'user',
-  currentUser: state => state.user,
-  getToken: state => state.token,
+  // Всегда возвращает true для тестирования
+  isAuthenticated: () => true,
+  isAdmin: () => true,
+  isTechnician: () => true,
+  isUser: () => true,
+  currentUser: () => ({
+    id: 'test-user-id',
+    name: 'Тестовый пользователь',
+    email: 'test@example.com',
+    role: 'admin'
+  }),
+  getToken: () => 'fake-jwt-token',
   authError: state => state.error,
   isLoading: state => state.loading
 };
 
 const actions = {
-  async login({ commit, dispatch }, credentials) {
+  // eslint-disable-next-line no-unused-vars
+  async login({ commit }, credentials) {
+    console.log('Вход с использованием заглушки:', credentials);
+
     commit('SET_LOADING', true);
-    commit('SET_ERROR', null);
 
-    try {
-      const response = await api.post('/auth/login', credentials);
-      const { token, user } = response.data;
+    // Имитируем задержку для реалистичности
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-      commit('SET_AUTH_DATA', { token, user });
+    // Имитируем успешную авторизацию
+    const fakeUser = {
+      id: 'test-user-id',
+      name: 'Тестовый пользователь',
+      email: credentials.email,
+      role: 'admin'
+    };
 
-      // Сохраняем данные в localStorage
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('auth_user', JSON.stringify(user));
+    const fakeToken = 'fake-jwt-token';
 
-      return user;
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Ошибка при входе в систему';
-      commit('SET_ERROR', errorMessage);
-      throw error;
-    } finally {
-      commit('SET_LOADING', false);
-    }
+    // Сохраняем данные в localStorage для совместимости
+    localStorage.setItem('auth_token', fakeToken);
+    localStorage.setItem('auth_user', JSON.stringify(fakeUser));
+
+    // Обновляем состояние
+    commit('SET_AUTH_DATA', { token: fakeToken, user: fakeUser });
+    commit('SET_LOADING', false);
+
+    return fakeUser;
   },
 
   async register({ commit }, userData) {
@@ -94,20 +106,23 @@ const actions = {
     router.push('/login');
   },
 
-  async checkAuth({ commit, state }) {
-    if (!state.token) return false;
+  async checkAuth({ commit }) {
+    console.log('Проверка авторизации с использованием заглушки');
 
-    try {
-      const response = await api.get('/auth/me');
-      commit('SET_USER', response.data);
-      return true;
-    } catch (error) {
-      // Если токен недействителен, выполняем выход
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
-      commit('CLEAR_AUTH_DATA');
-      return false;
-    }
+    // Имитируем валидный токен
+    const fakeUser = {
+      id: 'test-user-id',
+      name: 'Тестовый пользователь',
+      email: 'test@example.com',
+      role: 'admin'
+    };
+
+    const fakeToken = 'fake-jwt-token';
+
+    // Обновляем состояние
+    commit('SET_AUTH_DATA', { token: fakeToken, user: fakeUser });
+
+    return true;
   },
 
   async updateProfile({ commit, state }, profileData) {

@@ -389,7 +389,7 @@
 import { mapGetters } from 'vuex';
 
 export default {
-  name: 'Settings',
+  name: 'SettingsView',
   data() {
     return {
       selectedTab: 0,

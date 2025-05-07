@@ -28,7 +28,6 @@ const getters = {
 };
 
 const actions = {
-  // Получение списка оборудования с фильтрацией и пагинацией
   async fetchEquipment({ commit }, params = {}) {
     commit('SET_LOADING', true);
 

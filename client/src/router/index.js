@@ -1,7 +1,6 @@
 // client/src/router/index.js
 import Vue from 'vue';
 import VueRouter from 'vue-router';
-import store from '@/store';
 
 // Layouts
 import MainLayout from '@/layouts/MainLayout.vue';
@@ -23,7 +22,6 @@ import StatusList from '@/views/equipment/StatusList.vue';
 
 // Request views
 import RequestList from '@/views/RequestListView.vue';
-//import RequestDetails from '@/views/requests/RequestDetails.vue';
 import Reports from '@/views/Reports.vue';
 
 Vue.use(VueRouter);
@@ -82,13 +80,13 @@ const routes = [
         props: true
       },
       {
-        path: 'equipment/categories',
+        path: 'categories',
         name: 'CategoryList',
         component: CategoryList,
         meta: { requiresAdmin: true }
       },
       {
-        path: 'equipment/statuses',
+        path: 'statuses',
         name: 'StatusList',
         component: StatusList,
         meta: { requiresAdmin: true }
@@ -128,37 +126,10 @@ const router = new VueRouter({
   routes
 });
 
-// Navigation guard для проверки авторизации
-router.beforeEach(async (to, from, next) => {
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
-  const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin);
-
-  // Проверяем аутентификацию только для маршрутов, требующих авторизации
-  if (requiresAuth) {
-    const isAuthenticated = store.getters['auth/isAuthenticated'];
-
-    if (!isAuthenticated) {
-      // Если пользователь не аутентифицирован, перенаправляем на страницу входа
-      return next({
-        path: '/login',
-        query: { redirect: to.fullPath }
-      });
-    }
-
-    // Проверяем права администратора для маршрутов, требующих прав администратора
-    if (requiresAdmin && !store.getters['auth/isAdmin']) {
-      // Если пользователь не администратор, перенаправляем на дашборд
-      return next({ path: '/' });
-    }
-  }
-
-  // Если пользователь аутентифицирован и пытается открыть страницу логина,
-  // перенаправляем на дашборд
-  if (to.path === '/login' && store.getters['auth/isAuthenticated']) {
-    return next({ path: '/' });
-  }
-
-  next();
+router.beforeEach((to, from, next) => {
+  console.log(`Навигация без проверки авторизации: ${from.path} -> ${to.path}`);
+  // Пропускаем все маршруты без проверки авторизации
+  return next();
 });
 
 export default router;
