@@ -13,33 +13,46 @@
                 label="Поиск"
                 single-line
                 hide-details
-                @input="debouncedSearch"
+                @input="onSearchInput"
               ></v-text-field>
             </v-card-title>
 
             <v-card-text>
+              <!-- Сообщение об ошибке -->
+              <v-alert
+                v-if="error"
+                type="error"
+                dismissible
+                class="mb-4"
+                @input="error = null"
+              >
+                {{ error }}
+              </v-alert>
+
               <!-- Фильтры -->
               <v-row class="mb-4">
                 <v-col cols="12" sm="3">
                   <v-select
                     v-model="selectedCategory"
-                    :items="categories"
+                    :items="categoriesList"
                     item-text="name"
                     item-value="id"
                     label="Категория"
                     clearable
-                    @change="applyFilters"
+                    :loading="categoriesLoading"
+                    @change="onFilterChange"
                   ></v-select>
                 </v-col>
                 <v-col cols="12" sm="3">
                   <v-select
                     v-model="selectedStatus"
-                    :items="statuses"
+                    :items="statusesList"
                     item-text="name"
                     item-value="id"
                     label="Статус"
                     clearable
-                    @change="applyFilters"
+                    :loading="statusesLoading"
+                    @change="onFilterChange"
                   ></v-select>
                 </v-col>
                 <v-col cols="12" sm="3">
@@ -47,7 +60,7 @@
                     v-model="inventoryNumberFilter"
                     label="Инвентарный номер"
                     clearable
-                    @input="debouncedSearch"
+                    @input="onSearchInput"
                   ></v-text-field>
                 </v-col>
                 <v-col cols="12" sm="3" class="d-flex justify-end align-center">
@@ -59,9 +72,9 @@
                     Сбросить
                   </v-btn>
                   <v-btn
+                    v-if="showAddButton"
                     color="success"
                     @click="openCreateDialog"
-                    v-if="canManageEquipment"
                   >
                     <v-icon left>mdi-plus</v-icon>
                     Добавить
@@ -72,14 +85,14 @@
               <!-- Таблица оборудования -->
               <v-data-table
                 :headers="headers"
-                :items="equipment"
+                :items="equipmentList"
                 :loading="loading"
                 :server-items-length="totalItems"
                 :options.sync="options"
                 :footer-props="{
                   'items-per-page-options': [10, 25, 50]
                 }"
-                @update:options="fetchEquipment"
+                @update:options="onOptionsChange"
               >
                 <template v-slot:item.image="{ item }">
                   <v-avatar size="36" v-if="item.image">
@@ -89,7 +102,8 @@
                 </template>
 
                 <template v-slot:item.category.name="{ item }">
-                  <v-chip small>{{ item.category ? item.category.name : '-' }}</v-chip>
+                  <v-chip small v-if="item.category">{{ item.category.name }}</v-chip>
+                  <span v-else>-</span>
                 </template>
 
                 <template v-slot:item.status.name="{ item }">
@@ -97,9 +111,11 @@
                     small
                     :color="getStatusColor(item.status)"
                     text-color="white"
+                    v-if="item.status"
                   >
-                    {{ item.status ? item.status.name : '-' }}
+                    {{ item.status.name }}
                   </v-chip>
+                  <span v-else>-</span>
                 </template>
 
                 <template v-slot:item.assignedTo.name="{ item }">
@@ -119,20 +135,34 @@
                     mdi-eye
                   </v-icon>
                   <v-icon
+                    v-if="showAddButton"
                     small
                     class="mr-2"
                     @click="editEquipment(item)"
-                    v-if="canManageEquipment"
                   >
                     mdi-pencil
                   </v-icon>
                   <v-icon
+                    v-if="isAdmin"
                     small
                     @click="confirmDelete(item)"
-                    v-if="isAdmin"
                   >
                     mdi-delete
                   </v-icon>
+                </template>
+
+                <!-- Шаблон для пустых данных -->
+                <template v-slot:no-data>
+                  <div class="text-center pa-5">
+                    <div v-if="loading">
+                      <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                      <div class="caption mt-2">Загрузка данных...</div>
+                    </div>
+                    <div v-else>
+                      <v-icon large color="grey lighten-1">mdi-database-off</v-icon>
+                      <div class="subtitle-1 mt-2">Нет данных для отображения</div>
+                    </div>
+                  </div>
                 </template>
               </v-data-table>
             </v-card-text>
@@ -143,6 +173,7 @@
 
     <!-- Диалог создания/редактирования оборудования -->
     <equipment-form-dialog
+      v-if="dialog"
       :dialog="dialog"
       :editMode="editMode"
       :equipment="selectedEquipment"
@@ -161,7 +192,7 @@
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="blue darken-1" text @click="deleteDialog = false">Отмена</v-btn>
-          <v-btn color="red darken-1" text @click="deleteEquipment">Удалить</v-btn>
+          <v-btn color="red darken-1" text @click="deleteEquipment" :loading="deleteLoading">Удалить</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -169,14 +200,10 @@
 </template>
 
 <script>
-import { mapGetters, mapActions } from 'vuex';
-import EquipmentFormDialog from '@/components/equipment/EquipmentFormDialog.vue';
-import debounce from 'lodash/debounce';
-
 export default {
   name: 'EquipmentList',
   components: {
-    EquipmentFormDialog
+    EquipmentFormDialog: () => import('@/components/equipment/EquipmentFormDialog.vue')
   },
   data() {
     return {
@@ -194,6 +221,12 @@ export default {
       editMode: false,
       selectedEquipment: null,
       deleteDialog: false,
+      deleteLoading: false,
+      loading: false,
+      categoriesLoading: false,
+      statusesLoading: false,
+      error: null,
+      totalItems: 0,
       headers: [
         { text: 'Фото', value: 'image', sortable: false, width: '80px' },
         { text: 'Наименование', value: 'name', sortable: true },
@@ -206,62 +239,48 @@ export default {
         { text: 'Закреплено за', value: 'assignedTo.name', sortable: false },
         { text: 'Действия', value: 'actions', sortable: false, align: 'center', width: '100px' }
       ],
-      totalItems: 0,
-      loading: false
+      debounceTimeout: null
     };
   },
   computed: {
-    ...mapGetters('equipment', [
-      'allCategories',
-      'allStatuses',
-    ]),
-    ...mapGetters('auth', [
-      'isAdmin',
-      'isTechnician'
-    ]),
-    canManageEquipment() {
+    isAdmin() {
+      return this.$store.getters['auth/isAdmin'];
+    },
+    isTechnician() {
+      return this.$store.getters['auth/isTechnician'];
+    },
+    showAddButton() {
       return this.isAdmin || this.isTechnician;
     },
-    equipment() {
-      return this.$store.state.equipment.equipmentList || [];
+    equipmentList() {
+      const list = this.$store.state.equipment?.equipmentList;
+      return Array.isArray(list) ? list : [];
     },
-    categories() {
-      return this.allCategories || [];
+    categoriesList() {
+      const categories = this.$store.state.equipment?.categories;
+      return Array.isArray(categories) ? categories : [];
     },
-    statuses() {
-      return this.allStatuses || [];
+    statusesList() {
+      const statuses = this.$store.state.equipment?.statuses;
+      return Array.isArray(statuses) ? statuses : [];
     }
   },
   created() {
-    this.debouncedSearch = debounce(this.applyFilters, 300);
     this.fetchEquipment();
     this.loadCategories();
     this.loadStatuses();
   },
   methods: {
-    ...mapActions('equipment', [
-      'fetchEquipment',
-      'fetchCategories',
-      'fetchStatuses',
-      'deleteEquipment'
-    ]),
-
-    loadCategories() {
-      this.fetchCategories();
-    },
-
-    loadStatuses() {
-      this.fetchStatuses();
-    },
-
     async fetchEquipment() {
       this.loading = true;
+      this.error = null;
+
       try {
         const params = {
           page: this.options.page,
           limit: this.options.itemsPerPage,
-          sortBy: this.options.sortBy[0],
-          order: this.options.sortDesc[0] ? 'DESC' : 'ASC',
+          sortBy: this.options.sortBy.length ? this.options.sortBy[0] : 'name',
+          order: this.options.sortDesc.length && this.options.sortDesc[0] ? 'DESC' : 'ASC',
           search: this.search,
           categoryId: this.selectedCategory,
           statusId: this.selectedStatus,
@@ -269,13 +288,62 @@ export default {
         };
 
         const response = await this.$store.dispatch('equipment/fetchEquipment', params);
-        this.totalItems = response.total;
+
+        // Handle both pagination response format and direct array
+        if (response && typeof response === 'object') {
+          if ('total' in response) {
+            this.totalItems = response.total;
+          } else if (Array.isArray(response)) {
+            this.totalItems = response.length;
+          }
+        }
       } catch (error) {
-        this.$store.commit('notification/SHOW_ERROR', 'Ошибка при загрузке оборудования');
+        console.error('Error fetching equipment:', error);
+        this.error = 'Failed to load equipment list';
+        this.totalItems = 0;
       } finally {
         this.loading = false;
       }
     },
+
+    onSearchInput() {
+      // Debounce для поиска
+      clearTimeout(this.debounceTimeout);
+      this.debounceTimeout = setTimeout(() => {
+        this.applyFilters();
+      }, 300);
+    },
+
+    onFilterChange() {
+      this.applyFilters();
+    },
+
+    onOptionsChange() {
+      this.fetchEquipment();
+    },
+
+    async loadCategories() {
+      this.categoriesLoading = true;
+      try {
+        await this.$store.dispatch('equipment/fetchCategories');
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      } finally {
+        this.categoriesLoading = false;
+      }
+    },
+
+    async loadStatuses() {
+      this.statusesLoading = true;
+      try {
+        await this.$store.dispatch('equipment/fetchStatuses');
+      } catch (error) {
+        console.error('Error loading statuses:', error);
+      } finally {
+        this.statusesLoading = false;
+      }
+    },
+
 
     applyFilters() {
       this.options.page = 1;
@@ -297,7 +365,7 @@ export default {
     },
 
     viewEquipment(equipment) {
-      this.$router.push({ name: 'EquipmentDetails', params: { id: equipment.id } });
+      this.$router.push({ name: 'equipment-details', params: { id: equipment.id } });
     },
 
     editEquipment(equipment) {
@@ -308,12 +376,15 @@ export default {
 
     closeDialog() {
       this.dialog = false;
-      this.selectedEquipment = null;
+      setTimeout(() => {
+        this.selectedEquipment = null;
+      }, 300);
     },
 
     onEquipmentSaved() {
       this.closeDialog();
       this.fetchEquipment();
+      this.$store.commit('notification/SHOW_SUCCESS', 'Оборудование успешно сохранено');
     },
 
     confirmDelete(equipment) {
@@ -322,30 +393,48 @@ export default {
     },
 
     async deleteEquipment() {
+      if (!this.selectedEquipment) return;
+
+      this.deleteLoading = true;
+      this.error = null;
+
       try {
         await this.$store.dispatch('equipment/deleteEquipment', this.selectedEquipment.id);
         this.$store.commit('notification/SHOW_SUCCESS', 'Оборудование успешно удалено');
         this.deleteDialog = false;
         this.fetchEquipment();
       } catch (error) {
-        this.$store.commit('notification/SHOW_ERROR', 'Ошибка при удалении оборудования');
+        console.error('Error deleting equipment:', error);
+        this.error = 'Ошибка при удалении оборудования';
+      } finally {
+        this.deleteLoading = false;
       }
     },
 
     formatDate(dateString) {
       if (!dateString) return '-';
-      const date = new Date(dateString);
-      return new Intl.DateTimeFormat('ru-RU').format(date);
+
+      try {
+        const date = new Date(dateString);
+        return new Intl.DateTimeFormat('ru-RU').format(date);
+      } catch (e) {
+        return '-';
+      }
     },
 
     getImageUrl(imagePath) {
       if (!imagePath) return '';
-      return `${process.env.VUE_APP_API_URL}/files/${imagePath}`;
+
+      if (imagePath.startsWith('http')) {
+        return imagePath;
+      }
+
+      return `${process.env.VUE_APP_API_URL || ''}/files/${imagePath}`;
     },
 
     getStatusColor(status) {
-      if (!status) return 'grey';
-      return status.color || 'blue';
+      if (!status || !status.color) return 'grey';
+      return status.color;
     }
   }
 };

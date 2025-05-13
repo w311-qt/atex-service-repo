@@ -4,8 +4,8 @@
     <v-app-bar color="primary" dark app flat>
       <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
       <v-toolbar-title class="ml-0 pl-3">
-        <span>ATEX</span>
-        <span class="font-weight-light">Оборудование</span>
+        <span>ATЭКС-Электро</span>
+        <span class="font-weight-light"></span>
       </v-toolbar-title>
       <v-spacer></v-spacer>
 
@@ -97,8 +97,8 @@
             <v-img src="@/assets/logo.png"></v-img>
           </v-list-item-avatar>
           <v-list-item-content>
-            <v-list-item-title class="text-h6">ATEX-Электро</v-list-item-title>
-            <v-list-item-subtitle>ИТ-Инвентаризация</v-list-item-subtitle>
+            <v-list-item-title class="text-h6">ATЭКС-Электро</v-list-item-title>
+            <v-list-item-subtitle>Инвентаризация</v-list-item-subtitle>
           </v-list-item-content>
           <v-btn
             icon
@@ -146,7 +146,7 @@
     <!-- Нижняя панель -->
     <v-footer app color="transparent" height="48" inset>
       <span class="text-caption grey--text">
-        &copy; {{ new Date().getFullYear() }} ATEX-Электро
+        &copy; {{ new Date().getFullYear() }} ATЭКС-Электро
       </span>
     </v-footer>
   </v-app>
@@ -162,7 +162,7 @@ export default {
       mini: false,
       menuItems: [
         {
-          title: 'Дашборд',
+          title: 'Обзорная панель',
           icon: 'mdi-view-dashboard',
           path: '/'
         },
@@ -198,22 +198,18 @@ export default {
 
   computed: {
     isLoggedIn() {
-      // Здесь будет проверка аутентификации через Vuex
       return true;
     },
 
     isAdmin() {
-      // Проверка роли пользователя
       return true;
     },
 
     userName() {
-      // Получение имени пользователя из Vuex
-      return 'Иван Иванов';
+      return 'Арсений Гумаров';
     },
 
     userInitials() {
-      // Получение инициалов из имени пользователя
       const name = this.userName;
       if (!name) return '';
 
@@ -227,19 +223,15 @@ export default {
 
   methods: {
     onProfile() {
-      // Переход к профилю пользователя
       this.$router.push('/profile');
     },
 
     onSettings() {
-      // Переход к настройкам
       this.$router.push('/settings');
     },
 
     onLogout() {
-      // Выход из системы
       console.log('Logout clicked');
-      // Здесь будет логика выхода из системы
     }
   }
 };

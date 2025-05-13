@@ -10,6 +10,7 @@ import { RequestStatus } from './requests/entities/request-status.entity';
 import { RequestPriority } from './requests/entities/request-priority.entity';
 import { Request } from './requests/entities/request.entity';
 import { RequestActivity } from './requests/entities/request-activity.entity';
+import { EquipmentSpecification } from './equipment/entities/equipment-specification.entity';
 
 // Загружаем переменные окружения
 dotenv.config();
@@ -23,16 +24,16 @@ export const AppDataSource = new DataSource({
   database: process.env.DATABASE_NAME || 'atex_equipment_db',
   entities: [
     User,
+    Equipment,
     Category,
     Status,
-    Equipment,
-    RequestType,
+    EquipmentSpecification,
     RequestStatus,
+    RequestType,
     RequestPriority,
     Request,
     RequestActivity,
   ],
-  migrations: ['dist/migrations/*{.ts,.js}'],
-  synchronize: false, // В продакшене всегда должно быть false!
+  synchronize: process.env.NODE_ENV === 'development',
   logging: process.env.NODE_ENV === 'development',
 });

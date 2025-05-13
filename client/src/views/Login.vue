@@ -1,4 +1,3 @@
-<!-- client/src/views/Login.vue -->
 <template>
   <v-container fluid fill-height class="login-page">
     <v-row align="center" justify="center">
@@ -6,7 +5,7 @@
         <v-card class="elevation-12 rounded-lg">
           <v-card-title class="headline primary white--text py-4 justify-center">
             <v-img src="@/assets/logo.png" max-width="40" class="mr-2"></v-img>
-            ATEX-Электро: Система Учета и Заявок
+            АТЭКС-Электро
           </v-card-title>
 
           <v-card-text class="pt-6">
@@ -80,7 +79,7 @@
         </v-card>
 
         <div class="text-center mt-4">
-          <span class="text-body-2 grey--text text--darken-1">© {{ new Date().getFullYear() }} ATEX-Электро. Все права защищены</span>
+          <span class="text-body-2 grey--text text--darken-1">© {{ new Date().getFullYear() }} АТЭКС-Электро. Все права защищены</span>
         </div>
       </v-col>
     </v-row>
@@ -125,15 +124,15 @@ export default {
       this.errorMessage = '';
 
       try {
-        // const response = await this.$store.dispatch('auth/login', {
-        //   email: this.email,
-        //   password: this.password,
-        //   rememberMe: this.rememberMe
-        // });
+        const response = await this.$store.dispatch('auth/login', {
+        email: this.email,
+        password: this.password,
+        rememberMe: this.rememberMe
+        });
 
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        this.$router.push('/');
+        await this.$router.push('/');
       } catch (error) {
         console.error('Login error:', error);
         this.errorMessage = error.response?.data?.message || 'Ошибка входа. Проверьте учетные данные.';

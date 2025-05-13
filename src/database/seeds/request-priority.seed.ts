@@ -4,14 +4,12 @@ import { DataSource } from 'typeorm';
 export async function RequestPrioritySeed(dataSource: DataSource) {
   const requestPriorityRepository = dataSource.getRepository(RequestPriority);
 
-  // Проверяем, есть ли уже приоритеты заявок в базе
   const count = await requestPriorityRepository.count();
   if (count > 0) {
     console.log('Request priorities already exist, skipping seed');
     return;
   }
 
-  // Создаем приоритеты заявок
   const priorities = requestPriorityRepository.create([
     {
       name: 'Низкий',
@@ -35,7 +33,6 @@ export async function RequestPrioritySeed(dataSource: DataSource) {
     },
   ]);
 
-  // Сохраняем приоритеты
   await requestPriorityRepository.save(priorities);
 
   console.log('Request priority seed completed');

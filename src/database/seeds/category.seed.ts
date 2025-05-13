@@ -4,14 +4,12 @@ import { DataSource } from 'typeorm';
 export async function CategorySeed(dataSource: DataSource) {
   const categoryRepository = dataSource.getRepository(Category);
 
-  // Проверяем, есть ли уже категории в базе
   const count = await categoryRepository.count();
   if (count > 0) {
     console.log('Categories already exist, skipping seed');
     return;
   }
 
-  // Создаем категории оборудования
   const categories = categoryRepository.create([
     {
       name: 'Мониторы',
@@ -59,7 +57,6 @@ export async function CategorySeed(dataSource: DataSource) {
     },
   ]);
 
-  // Сохраняем категории
   await categoryRepository.save(categories);
 
   console.log('Category seed completed');
