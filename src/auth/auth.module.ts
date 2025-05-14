@@ -7,11 +7,10 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { UsersModule } from '../users/users.module';
-import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
   imports: [
-    UsersModule,
+    UsersModule, // Убедитесь, что этот модуль экспортирует UsersService
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

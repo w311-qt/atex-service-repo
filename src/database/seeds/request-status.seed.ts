@@ -4,14 +4,12 @@ import { DataSource } from 'typeorm';
 export async function RequestStatusSeed(dataSource: DataSource) {
   const requestStatusRepository = dataSource.getRepository(RequestStatus);
 
-  // Проверяем, есть ли уже статусы заявок в базе
   const count = await requestStatusRepository.count();
   if (count > 0) {
     console.log('Request statuses already exist, skipping seed');
     return;
   }
 
-  // Создаем статусы заявок
   const statuses = requestStatusRepository.create([
     {
       name: 'Новая',
@@ -40,7 +38,6 @@ export async function RequestStatusSeed(dataSource: DataSource) {
     },
   ]);
 
-  // Сохраняем статусы
   await requestStatusRepository.save(statuses);
 
   console.log('Request status seed completed');

@@ -47,18 +47,34 @@ const actions = {
     commit('SET_ERROR', null);
 
     try {
+      console.log('Trying to login with:', credentials);
       const response = await api.post('/auth/login', credentials);
-      const { token, user } = response.data;
+      console.log('Login response:', response.data);
 
-      commit('SET_AUTH_DATA', { token, user });
+      const { access_token, user } = response.data;
+
+      // Проверяем структуру ответа
+      if (!access_token || !user) {
+        console.error('Invalid response structure:', response.data);
+        throw new Error('Неверный формат ответа от сервера');
+      }
+
+      commit('SET_AUTH_DATA', { token: access_token, user });
 
       // Сохраняем данные в localStorage
-      localStorage.setItem('auth_token', token);
+      localStorage.setItem('auth_token', access_token);
       localStorage.setItem('auth_user', JSON.stringify(user));
 
       return user;
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Ошибка при входе в систему';
+      console.error('Login error details:', error);
+
+      let errorMessage = 'Ошибка при входе в систему';
+      if (error.response) {
+        console.error('Server response:', error.response.data);
+        errorMessage = error.response.data.message || errorMessage;
+      }
+
       commit('SET_ERROR', errorMessage);
       throw error;
     } finally {

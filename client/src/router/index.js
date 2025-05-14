@@ -128,7 +128,6 @@ const router = new VueRouter({
   routes
 });
 
-// Navigation guard для проверки авторизации
 router.beforeEach(async (to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin);

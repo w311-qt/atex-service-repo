@@ -18,7 +18,7 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { UserRole } from '../../users/entities/user.entity';
 
-@Controller('equipment/statuses')
+@Controller('statuses')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class StatusController {
   constructor(private readonly statusService: StatusService) {}

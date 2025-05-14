@@ -1,4 +1,3 @@
-// client/src/store/modules/equipment.js
 import api from '@/services/api';
 
 const state = {
@@ -28,24 +27,29 @@ const getters = {
 };
 
 const actions = {
-  // Получение списка оборудования с фильтрацией и пагинацией
   async fetchEquipment({ commit }, params = {}) {
     commit('SET_LOADING', true);
 
     try {
       const response = await api.get('/equipment', { params });
-      commit('SET_EQUIPMENT_LIST', response.data.data);
-      commit('SET_TOTAL_EQUIPMENT', response.data.total);
+
+      if (response.data && 'data' in response.data) {
+        commit('SET_EQUIPMENT_LIST', response.data.data);
+        commit('SET_TOTAL_EQUIPMENT', response.data.total);
+      } else {
+        commit('SET_EQUIPMENT_LIST', response.data || []);
+        commit('SET_TOTAL_EQUIPMENT', response.data?.length || 0);
+      }
+
       return response.data;
     } catch (error) {
-      commit('SET_ERROR', error.message || 'Ошибка при получении списка оборудования');
+      commit('SET_ERROR', error.message || 'Error fetching equipment');
       throw error;
     } finally {
       commit('SET_LOADING', false);
     }
   },
 
-  // Получение оборудования по ID
   async fetchEquipmentById({ commit }, id) {
     commit('SET_LOADING', true);
 
@@ -61,23 +65,32 @@ const actions = {
     }
   },
 
-  // Создание нового оборудования
   async createEquipment({ commit }, equipmentData) {
     commit('SET_LOADING', true);
 
     try {
+      console.log('Creating equipment with data:', equipmentData);
       const response = await api.post('/equipment', equipmentData);
-      commit('ADD_EQUIPMENT', response.data);
+      console.log('Response after creating equipment:', response.data);
+
+      // Добавляем созданное оборудование в хранилище
+      if (response.data && response.data.id) {
+        commit('ADD_EQUIPMENT', response.data);
+      } else {
+        console.warn('Response does not contain equipment data with ID');
+      }
+
       return response.data;
     } catch (error) {
-      commit('SET_ERROR', error.message || 'Ошибка при создании оборудования');
+      console.error('Error creating equipment:', error);
+      const errorMessage = error.response?.data?.message || 'Ошибка при создании оборудования';
+      commit('SET_ERROR', errorMessage);
       throw error;
     } finally {
       commit('SET_LOADING', false);
     }
   },
 
-  // Обновление оборудования
   async updateEquipment({ commit }, { id, equipmentData }) {
     commit('SET_LOADING', true);
 
@@ -148,28 +161,26 @@ const actions = {
     }
   },
 
-  // Получение списка категорий
   async fetchCategories({ commit }) {
     commit('SET_LOADING', true);
-
     try {
-      const response = await api.get('/equipment/categories');
+      const response = await api.get('categories');
       commit('SET_CATEGORIES', response.data);
       return response.data;
     } catch (error) {
-      commit('SET_ERROR', error.message || 'Ошибка при получении категорий');
+      commit('SET_ERROR', error.message || 'Error fetching categories');
+      commit('SET_CATEGORIES', []);
       throw error;
     } finally {
       commit('SET_LOADING', false);
     }
   },
 
-  // Получение списка категорий с количеством оборудования
   async fetchCategoriesWithCount({ commit }) {
     commit('SET_LOADING', true);
 
     try {
-      const response = await api.get('/equipment/categories/count');
+      const response = await api.get('categories/count');
       commit('SET_CATEGORIES', response.data);
       return response.data;
     } catch (error) {
@@ -185,7 +196,7 @@ const actions = {
     commit('SET_LOADING', true);
 
     try {
-      const response = await api.post('/equipment/categories', categoryData);
+      const response = await api.post('categories', categoryData);
       commit('ADD_CATEGORY', response.data);
       return response.data;
     } catch (error) {
@@ -201,7 +212,7 @@ const actions = {
     commit('SET_LOADING', true);
 
     try {
-      const response = await api.patch(`/equipment/categories/${id}`, categoryData);
+      const response = await api.patch(`categories/${id}`, categoryData);
       commit('UPDATE_CATEGORY', response.data);
       return response.data;
     } catch (error) {
@@ -217,7 +228,7 @@ const actions = {
     commit('SET_LOADING', true);
 
     try {
-      await api.delete(`/equipment/categories/${id}`);
+      await api.delete(`categories/${id}`);
       commit('REMOVE_CATEGORY', id);
     } catch (error) {
       commit('SET_ERROR', error.message || 'Ошибка при удалении категории');
@@ -227,23 +238,21 @@ const actions = {
     }
   },
 
-  // Получение списка статусов
   async fetchStatuses({ commit }) {
     commit('SET_LOADING', true);
-
     try {
-      const response = await api.get('/equipment/statuses');
+      const response = await api.get('statuses');
       commit('SET_STATUSES', response.data);
       return response.data;
     } catch (error) {
-      commit('SET_ERROR', error.message || 'Ошибка при получении статусов');
+      commit('SET_ERROR', error.message || 'Error fetching statuses');
+      commit('SET_STATUSES', []);
       throw error;
     } finally {
       commit('SET_LOADING', false);
     }
   },
 
-  // Получение списка статусов с количеством оборудования
   async fetchStatusesWithCount({ commit }) {
     commit('SET_LOADING', true);
 
@@ -342,8 +351,18 @@ const mutations = {
   },
 
   ADD_EQUIPMENT(state, equipment) {
-    state.equipmentList.push(equipment);
+    // Проверяем, существует ли массив оборудования
+    if (!Array.isArray(state.equipmentList)) {
+      state.equipmentList = [];
+    }
+
+    // Добавляем оборудование в начало списка
+    state.equipmentList.unshift(equipment);
+
+    // Увеличиваем общее количество
     state.totalEquipment++;
+
+    console.log('Оборудование добавлено в хранилище:', equipment);
   },
 
   UPDATE_EQUIPMENT(state, updatedEquipment) {

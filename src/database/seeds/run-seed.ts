@@ -12,11 +12,9 @@ import { UserSeed } from './user.seed';
  */
 async function runSeed() {
   try {
-    // Инициализируем соединение с базой данных
     await AppDataSource.initialize();
     console.log('Database connection initialized');
 
-    // Запускаем сиды в правильном порядке
     await UserSeed(AppDataSource);
     await StatusSeed(AppDataSource);
     await CategorySeed(AppDataSource);
@@ -28,7 +26,6 @@ async function runSeed() {
   } catch (error) {
     console.error('Error during seed execution:', error);
   } finally {
-    // Закрываем соединение с базой данных
     if (AppDataSource.isInitialized) {
       await AppDataSource.destroy();
       console.log('Database connection closed');
@@ -36,5 +33,4 @@ async function runSeed() {
   }
 }
 
-// Запускаем сиды
 runSeed();

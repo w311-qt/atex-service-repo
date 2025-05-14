@@ -1,8 +1,8 @@
 <template>
   <v-dialog v-model="dialogVisible" max-width="800px" persistent>
     <v-card>
-      <v-card-title>
-        <span class="headline">{{ editMode ? 'Редактировать оборудование' : 'Добавить оборудование' }}</span>
+      <v-card-title class="headline">
+        {{ editMode ? 'Редактировать оборудование' : 'Добавить оборудование' }}
       </v-card-title>
 
       <v-card-text>
@@ -60,18 +60,18 @@
                 ></v-text-field>
               </v-col>
               <v-col cols="12" sm="6">
+                <!-- Исправленный датапикер -->
                 <v-menu
-                  ref="dateMenu"
                   v-model="dateMenu"
                   :close-on-content-click="false"
-                  :return-value.sync="formData.purchaseDate"
+                  :nudge-right="40"
                   transition="scale-transition"
                   offset-y
                   min-width="auto"
                 >
                   <template v-slot:activator="{ on, attrs }">
                     <v-text-field
-                      v-model="formattedDate"
+                      v-model="displayDate"
                       label="Дата поступления"
                       prepend-icon="mdi-calendar"
                       readonly
@@ -81,14 +81,10 @@
                   </template>
                   <v-date-picker
                     v-model="formData.purchaseDate"
-                    no-title
-                    scrollable
                     @input="dateMenu = false"
-                  >
-                    <v-spacer></v-spacer>
-                    <v-btn text color="primary" @click="dateMenu = false">Отмена</v-btn>
-                    <v-btn text color="primary" @click="$refs.dateMenu.save(formData.purchaseDate)">OK</v-btn>
-                  </v-date-picker>
+                    locale="ru"
+                    first-day-of-week="1"
+                  ></v-date-picker>
                 </v-menu>
               </v-col>
               <v-col cols="12">
@@ -111,6 +107,24 @@
           Сохранить
         </v-btn>
       </v-card-actions>
+
+      <!-- Показать ошибку, если есть -->
+      <v-snackbar
+        v-model="showError"
+        color="error"
+        :timeout="3000"
+      >
+        {{ errorMessage }}
+        <template v-slot:action="{ attrs }">
+          <v-btn
+            text
+            v-bind="attrs"
+            @click="showError = false"
+          >
+            Закрыть
+          </v-btn>
+        </template>
+      </v-snackbar>
     </v-card>
   </v-dialog>
 </template>
@@ -140,6 +154,8 @@ export default {
       valid: true,
       loading: false,
       dateMenu: false,
+      showError: false,
+      errorMessage: '',
       formData: {
         name: '',
         inventoryNumber: '',
@@ -177,10 +193,21 @@ export default {
     statuses() {
       return this.allStatuses || [];
     },
-    formattedDate() {
+    displayDate() {
       if (!this.formData.purchaseDate) return '';
-      const [year, month, day] = this.formData.purchaseDate.split('-');
-      return `${day}.${month}.${year}`;
+
+      // Форматируем дату для отображения
+      try {
+        const date = new Date(this.formData.purchaseDate);
+        return new Intl.DateTimeFormat('ru-RU').format(date);
+      } catch (e) {
+        // Если дата в формате YYYY-MM-DD
+        const [year, month, day] = this.formData.purchaseDate.split('-');
+        if (year && month && day) {
+          return `${day}.${month}.${year}`;
+        }
+        return this.formData.purchaseDate;
+      }
     }
   },
   watch: {
@@ -239,26 +266,39 @@ export default {
       if (this.$refs.form) {
         this.$refs.form.resetValidation();
       }
+      this.showError = false;
     },
     async save() {
       if (this.$refs.form.validate()) {
         this.loading = true;
         try {
+          const equipmentData = { ...this.formData };
+
+          console.log('Debug - form data before sending:', equipmentData);
+
+          if (!equipmentData.categoryId) {
+            throw new Error('Выберите допустимую категорию');
+          }
+
+          if (!equipmentData.statusId) {
+            throw new Error('Выберите допустимый статус');
+          }
+
           if (this.editMode && this.equipment) {
             await this.$store.dispatch('equipment/updateEquipment', {
               id: this.equipment.id,
-              equipmentData: this.formData
+              equipmentData
             });
-            this.$store.commit('notification/SHOW_SUCCESS', 'Оборудование успешно обновлено');
           } else {
-            await this.$store.dispatch('equipment/createEquipment', this.formData);
-            this.$store.commit('notification/SHOW_SUCCESS', 'Оборудование успешно добавлено');
+            await this.$store.dispatch('equipment/createEquipment', equipmentData);
           }
+
           this.$emit('saved');
           this.close();
         } catch (error) {
-          const errorMessage = error.message || 'Ошибка при сохранении оборудования';
-          this.$store.commit('notification/SHOW_ERROR', errorMessage);
+          console.error('Error saving equipment:', error);
+          this.errorMessage = error.response?.data?.message || error.message || 'Ошибка при сохранении';
+          this.showError = true;
         } finally {
           this.loading = false;
         }

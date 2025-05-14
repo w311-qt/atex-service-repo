@@ -5,14 +5,12 @@ import { DataSource } from 'typeorm';
 export async function RequestTypeSeed(dataSource: DataSource) {
   const requestTypeRepository = dataSource.getRepository(RequestType);
 
-  // Проверяем, есть ли уже типы заявок в базе
   const count = await requestTypeRepository.count();
   if (count > 0) {
     console.log('Request types already exist, skipping seed');
     return;
   }
 
-  // Создаем типы заявок
   const types = requestTypeRepository.create([
     {
       name: 'Ремонт',
@@ -36,7 +34,6 @@ export async function RequestTypeSeed(dataSource: DataSource) {
     },
   ]);
 
-  // Сохраняем типы
   await requestTypeRepository.save(types);
 
   console.log('Request type seed completed');
