@@ -1,3 +1,4 @@
+// src/equipment/controllers/equipment.controller.ts
 import {
   Controller,
   Get,
@@ -23,29 +24,29 @@ export class EquipmentController {
   constructor(private readonly equipmentService: EquipmentService) {}
 
   @Get()
-  findAll(@Query() filterDto: EquipmentFilterDto) {
+  async findAll(@Query() filterDto: EquipmentFilterDto) {
     return this.equipmentService.findAll(filterDto);
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createEquipmentDto: CreateEquipmentDto) {
+  async create(@Body() createEquipmentDto: CreateEquipmentDto) {
     return this.equipmentService.create(createEquipmentDto);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string) {
     return this.equipmentService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateEquipmentDto: UpdateEquipmentDto) {
+  async update(@Param('id') id: string, @Body() updateEquipmentDto: UpdateEquipmentDto) {
     return this.equipmentService.update(id, updateEquipmentDto);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: string) {
+  async remove(@Param('id') id: string) {
     return this.equipmentService.remove(id);
   }
 }

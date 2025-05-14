@@ -101,21 +101,22 @@
                   <v-icon v-else>mdi-image-off</v-icon>
                 </template>
 
-                <template v-slot:item.category.name="{ item }">
-                  <v-chip small v-if="item.category">{{ item.category.name }}</v-chip>
-                  <span v-else>-</span>
+                <template v-slot:item.categoryId="{ item }">
+                  <div class="category-badge">
+                    {{ getCategoryNameById(item.categoryId) }}
+                  </div>
                 </template>
 
-                <template v-slot:item.status.name="{ item }">
-                  <v-chip
-                    small
-                    :color="getStatusColor(item.status)"
-                    text-color="white"
-                    v-if="item.status"
+                <template v-slot:item.statusId="{ item }">
+                  <div
+                    class="status-badge"
+                    :style="{
+        backgroundColor: getStatusColorById(item.statusId),
+        color: getStatusColorById(item.statusId) === '#ffc107' ? 'black' : 'white'
+      }"
                   >
-                    {{ item.status.name }}
-                  </v-chip>
-                  <span v-else>-</span>
+                    {{ getStatusNameById(item.statusId) }}
+                  </div>
                 </template>
 
                 <template v-slot:item.assignedTo.name="{ item }">
@@ -232,8 +233,8 @@ export default {
         { text: 'Наименование', value: 'name', sortable: true },
         { text: 'Инв. номер', value: 'inventoryNumber', sortable: true },
         { text: 'Модель', value: 'model', sortable: true },
-        { text: 'Категория', value: 'category.name', sortable: false },
-        { text: 'Статус', value: 'status.name', sortable: false },
+        { text: 'Категория', value: 'categoryId', sortable: false },
+        { text: 'Статус', value: 'statusId', sortable: false },
         { text: 'Местоположение', value: 'location', sortable: true },
         { text: 'Дата поступления', value: 'purchaseDate', sortable: true },
         { text: 'Закреплено за', value: 'assignedTo.name', sortable: false },
@@ -289,7 +290,6 @@ export default {
 
         const response = await this.$store.dispatch('equipment/fetchEquipment', params);
 
-        // Handle both pagination response format and direct array
         if (response && typeof response === 'object') {
           if ('total' in response) {
             this.totalItems = response.total;
@@ -304,6 +304,56 @@ export default {
       } finally {
         this.loading = false;
       }
+    },
+    getCategoryNameById(categoryId) {
+      if (!categoryId) return '-';
+
+      const category = this.categoriesList.find(c => c.id === categoryId);
+      return category ? category.name : '-';
+    },
+
+    getStatusNameById(statusId) {
+      if (!statusId) return '-';
+
+      const status = this.statusesList.find(s => s.id === statusId);
+      return status ? status.name : '-';
+    },
+
+    getStatusColorById(statusId) {
+      if (!statusId) return 'grey';
+
+      const status = this.statusesList.find(s => s.id === statusId);
+
+      if (!status) return 'grey';
+
+      // Если у статуса есть свойство color, используем его
+      if (status.color) {
+        return status.color;
+      }
+
+      // Иначе используем карту соответствия имен статусов с цветами
+      const colorMap = {
+        'Новый': '#17a2b8',
+        'Рабочий': '#28a745',
+        'Рабочее': '#28a745',
+        'Дефектное': '#ffc107',
+        'Дефектный': '#ffc107',
+        'Нерабочее': '#dc3545',
+        'Нерабочий': '#dc3545'
+      };
+
+      return colorMap[status.name] || 'grey';
+    },
+
+    getUserNameById(userId) {
+      if (!userId) return null;
+
+      if (this.$store.state.users && this.$store.state.users.users) {
+        const user = this.$store.state.users.users.find(u => u.id === userId);
+        return user ? user.name : null;
+      }
+
+      return null;
     },
 
     onSearchInput() {
@@ -433,15 +483,47 @@ export default {
     },
 
     getStatusColor(status) {
-      if (!status || !status.color) return 'grey';
-      return status.color;
+      if (!status) return 'grey';
+
+      const statusName = status.name || status;
+
+      // Карта цветов для статусов
+      const colorMap = {
+        'Новый': '#17a2b8',
+        'Рабочий': '#28a745',
+        'Рабочее': '#28a745',
+        'Дефектное': '#ffc107',
+        'Дефектный': '#ffc107',
+        'Нерабочее': '#dc3545',
+        'Нерабочий': '#dc3545'
+      };
+
+      return colorMap[statusName] || 'grey';
     }
   }
-};
+}
 </script>
 
 <style scoped>
 .equipment-list {
   width: 100%;
+}
+.category-badge {
+  font-weight: 500;
+  color: #333;
+  background-color: #f5f5f5;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  font-size: 0.85rem;
+}
+
+.status-badge {
+  font-size: 12px;
+  border-radius: 16px;
+  padding: 4px 8px;
+  display: inline-block;
+  font-weight: 500;
+  text-align: center;
 }
 </style>
