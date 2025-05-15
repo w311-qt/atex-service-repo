@@ -37,12 +37,13 @@ const actions = {
         commit('SET_EQUIPMENT_LIST', response.data.data);
         commit('SET_TOTAL_EQUIPMENT', response.data.total);
       } else {
-        commit('SET_EQUIPMENT_LIST', response.data || []);
-        commit('SET_TOTAL_EQUIPMENT', response.data?.length || 0);
+        console.warn('Unexpected data structure from API:', response.data);
+        commit('SET_EQUIPMENT_LIST', Array.isArray(response.data) ? response.data : []);
       }
 
       return response.data;
     } catch (error) {
+      console.error('Error fetching equipment:', error);
       commit('SET_ERROR', error.message || 'Error fetching equipment');
       throw error;
     } finally {
@@ -164,7 +165,7 @@ const actions = {
   async fetchCategories({ commit }) {
     commit('SET_LOADING', true);
     try {
-      const response = await api.get('categories');
+      const response = await api.get('/categories');
       commit('SET_CATEGORIES', response.data);
       return response.data;
     } catch (error) {
@@ -241,7 +242,7 @@ const actions = {
   async fetchStatuses({ commit }) {
     commit('SET_LOADING', true);
     try {
-      const response = await api.get('statuses');
+      const response = await api.get('/statuses');
       commit('SET_STATUSES', response.data);
       return response.data;
     } catch (error) {

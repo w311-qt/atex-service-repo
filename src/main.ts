@@ -34,6 +34,7 @@ async function bootstrap() {
         process.env.FRONTEND_URL || 'http://localhost:8080',
         'http://192.168.0.100:8081',
         'http://localhost:3000',
+        'http://192.168.0.100:8080'
       ],
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
       credentials: true,

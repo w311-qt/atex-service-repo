@@ -1,4 +1,4 @@
-import api from '@/services/api';
+import dashboardService from '@/services/dashboard.service';
 
 const state = {
   statistics: {
@@ -29,12 +29,38 @@ const actions = {
   async fetchStatistics({ commit }) {
     commit('SET_LOADING', true);
     try {
-      const response = await api.get('/dashboard/statistics');
-      commit('SET_STATISTICS', response.data);
-      return response.data;
+      // Получаем общую статистику через сервис
+      const data = await dashboardService.getStatistics();
+
+      // Проверяем, что получены корректные данные
+      if (data) {
+        console.log('Получены данные статистики:', data);
+        commit('SET_STATISTICS', data);
+        return data;
+      } else {
+        console.warn('API вернул пустые данные для статистики');
+        commit('SET_STATISTICS', {
+          equipmentTotal: 0,
+          activeRequests: 0,
+          workingEquipment: 0,
+          needAttention: 0,
+          categoryStats: [],
+          statusStats: []
+        });
+        return null;
+      }
     } catch (error) {
+      console.error('Ошибка при получении статистики:', error);
       commit('SET_ERROR', error.message || 'Ошибка при получении статистики');
-      throw error;
+      commit('SET_STATISTICS', {
+        equipmentTotal: 0,
+        activeRequests: 0,
+        workingEquipment: 0,
+        needAttention: 0,
+        categoryStats: [],
+        statusStats: []
+      });
+      return null;
     } finally {
       commit('SET_LOADING', false);
     }
@@ -44,12 +70,24 @@ const actions = {
   async fetchRecentRequests({ commit }) {
     commit('SET_LOADING', true);
     try {
-      const response = await api.get('/dashboard/recent-requests');
-      commit('SET_RECENT_REQUESTS', response.data);
-      return response.data;
+      // Получаем последние заявки через сервис
+      const requests = await dashboardService.getRecentRequests(5);
+
+      // Проверяем полученные данные
+      if (requests && requests.length > 0) {
+        console.log('Получены последние заявки:', requests);
+        commit('SET_RECENT_REQUESTS', requests);
+        return requests;
+      } else {
+        console.warn('API вернул пустой список заявок');
+        commit('SET_RECENT_REQUESTS', []);
+        return [];
+      }
     } catch (error) {
+      console.error('Ошибка при получении последних заявок:', error);
       commit('SET_ERROR', error.message || 'Ошибка при получении последних заявок');
-      throw error;
+      commit('SET_RECENT_REQUESTS', []);
+      return [];
     } finally {
       commit('SET_LOADING', false);
     }
@@ -59,12 +97,24 @@ const actions = {
   async fetchRecentActivities({ commit }) {
     commit('SET_LOADING', true);
     try {
-      const response = await api.get('/dashboard/recent-activities');
-      commit('SET_RECENT_ACTIVITIES', response.data);
-      return response.data;
+      // Получаем последние активности через сервис
+      const activities = await dashboardService.getRecentActivities(5);
+
+      // Проверяем полученные данные
+      if (activities && activities.length > 0) {
+        console.log('Получены последние активности:', activities);
+        commit('SET_RECENT_ACTIVITIES', activities);
+        return activities;
+      } else {
+        console.warn('API вернул пустой список активностей');
+        commit('SET_RECENT_ACTIVITIES', []);
+        return [];
+      }
     } catch (error) {
+      console.error('Ошибка при получении последних активностей:', error);
       commit('SET_ERROR', error.message || 'Ошибка при получении последних активностей');
-      throw error;
+      commit('SET_RECENT_ACTIVITIES', []);
+      return [];
     } finally {
       commit('SET_LOADING', false);
     }
@@ -74,12 +124,24 @@ const actions = {
   async fetchAttentionEquipment({ commit }) {
     commit('SET_LOADING', true);
     try {
-      const response = await api.get('/dashboard/attention-equipment');
-      commit('SET_ATTENTION_EQUIPMENT', response.data);
-      return response.data;
+      // Получаем оборудование, требующее внимания, через сервис
+      const equipment = await dashboardService.getAttentionEquipment(5);
+
+      // Проверяем полученные данные
+      if (equipment && equipment.length > 0) {
+        console.log('Получено оборудование, требующее внимания:', equipment);
+        commit('SET_ATTENTION_EQUIPMENT', equipment);
+        return equipment;
+      } else {
+        console.warn('API вернул пустой список оборудования, требующего внимания');
+        commit('SET_ATTENTION_EQUIPMENT', []);
+        return [];
+      }
     } catch (error) {
+      console.error('Ошибка при получении оборудования, требующего внимания:', error);
       commit('SET_ERROR', error.message || 'Ошибка при получении оборудования, требующего внимания');
-      throw error;
+      commit('SET_ATTENTION_EQUIPMENT', []);
+      return [];
     } finally {
       commit('SET_LOADING', false);
     }
