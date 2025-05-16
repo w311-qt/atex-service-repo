@@ -77,7 +77,6 @@
               <v-divider class="my-3"></v-divider>
             </v-col>
 
-            <!-- Информация об оборудовании, если указано -->
             <template v-if="request.equipmentId && request.equipment">
               <v-col cols="12">
                 <div class="subtitle-1 mb-2">Оборудование</div>
@@ -172,13 +171,10 @@ export default {
     canEdit() {
       if (!this.request || !this.currentUser) return false;
 
-      // Администраторы могут всё
       if (this.isAdmin) return true;
 
-      // Техники могут управлять заявками, назначенными им
       if (this.isTechnician && this.request.assignedToId === this.currentUser.id) return true;
 
-      // Обычные пользователи могут управлять своими заявками, но только если они не назначены технику
       if (this.request.createdById === this.currentUser.id && !this.request.assignedToId) return true;
 
       return false;
@@ -224,7 +220,6 @@ export default {
     getRequestTypeIcon(type) {
       if (!type) return 'mdi-help-circle';
 
-      // Определение иконки в зависимости от типа заявки
       const typeName = type.name.toLowerCase();
       if (typeName.includes('ремонт')) return 'mdi-tools';
       if (typeName.includes('заправка') || typeName.includes('картридж')) return 'mdi-printer';

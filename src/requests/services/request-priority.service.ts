@@ -31,7 +31,6 @@ export class RequestPriorityService {
   }
 
   async create(createRequestPriorityDto: CreateRequestPriorityDto): Promise<RequestPriority> {
-    // Check if priority with this name already exists
     const existingPriority = await this.requestPriorityRepository.findOne({
       where: { name: createRequestPriorityDto.name },
     });
@@ -52,7 +51,6 @@ export class RequestPriorityService {
   ): Promise<RequestPriority> {
     const requestPriority = await this.findOne(id);
 
-    // Check if name is being updated and is already in use
     if (updateRequestPriorityDto.name && updateRequestPriorityDto.name !== requestPriority.name) {
       const existingPriority = await this.requestPriorityRepository.findOne({
         where: { name: updateRequestPriorityDto.name },
@@ -72,7 +70,7 @@ export class RequestPriorityService {
   async remove(id: string): Promise<void> {
     const requestPriority = await this.findOne(id);
 
-    // Check if priority is in use
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const requestCount = await this.requestPriorityRepository
       .createQueryBuilder('requestPriority')
       .leftJoin('requestPriority.requests', 'request')
@@ -80,6 +78,7 @@ export class RequestPriorityService {
       .select('COUNT(request.id)', 'count')
       .getRawOne();
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access,@typescript-eslint/no-unsafe-argument
     if (requestCount && parseInt(requestCount.count, 10) > 0) {
       throw new ConflictException(
         `Cannot delete request priority. It is used by ${requestCount.count} request(s).`,

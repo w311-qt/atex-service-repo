@@ -29,6 +29,18 @@ const actions = {
   async fetchStatistics({ commit }) {
     commit('SET_LOADING', true);
     try {
+      // Убедимся, что необходимые данные загружены в хранилище
+      try {
+        await Promise.all([
+          this.$store.dispatch('equipment/fetchEquipment'),
+          this.$store.dispatch('equipment/fetchCategories'),
+          this.$store.dispatch('equipment/fetchStatuses'),
+          this.$store.dispatch('requests/fetchRequests')
+        ]);
+      } catch (error) {
+        console.warn('Некоторые данные не удалось предзагрузить:', error);
+      }
+
       // Получаем общую статистику через сервис
       const data = await dashboardService.getStatistics();
 
@@ -147,19 +159,48 @@ const actions = {
     }
   },
 
-  // Загрузка всех данных для дашборда одним вызовом
+  /*
   async fetchAllDashboardData({ dispatch }) {
     try {
       await Promise.all([
-        dispatch('fetchStatistics'),
-        dispatch('fetchRecentRequests'),
-        dispatch('fetchRecentActivities'),
-        dispatch('fetchAttentionEquipment')
+        dispatch('equipment/fetchEquipment', null, { root: true }),
+        dispatch('equipment/fetchCategories', null, { root: true }),
+        dispatch('equipment/fetchStatuses', null, { root: true }),
+        dispatch('requests/fetchRequests', null, { root: true })
       ]);
     } catch (error) {
-      console.error('Ошибка при загрузке данных для дашборда:', error);
-      throw error;
+      console.warn('Некоторые данные не удалось предзагрузить:', error);
     }
+  },
+  async clearStatisticsCache({ commit }) {
+    commit('SET_STATISTICS', {
+      equipmentTotal: 0,
+      activeRequests: 0,
+      workingEquipment: 0,
+      needAttention: 0,
+      categoryStats: [],
+      statusStats: []
+    });
+  },
+*/
+  async clearAllCaches({ commit, dispatch }) {
+    commit('SET_STATISTICS', {
+      equipmentTotal: 0,
+      activeRequests: 0,
+      workingEquipment: 0,
+      needAttention: 0,
+      categoryStats: [],
+      statusStats: []
+    });
+
+    // Очищаем списки
+    commit('SET_RECENT_REQUESTS', []);
+    commit('SET_RECENT_ACTIVITIES', []);
+    commit('SET_ATTENTION_EQUIPMENT', []);
+
+    // Можно также вызвать очистку кэшей в других модулях
+    commit('equipment/SET_EQUIPMENT_LIST', [], { root: true });
+    commit('requests/SET_REQUESTS_LIST', [], { root: true });
   }
 };
 

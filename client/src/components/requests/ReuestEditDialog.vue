@@ -60,7 +60,6 @@
                 ></v-text-field>
               </v-col>
 
-              <!-- Показывать только для заявок типа "Заправка картриджа" -->
               <v-col cols="12" sm="6" v-if="isCartridgeRefillType">
                 <v-text-field
                   v-model="formData.cartridgeModel"
@@ -115,7 +114,7 @@ export default {
       dialogVisible: true,
       valid: true,
       loading: false,
-      cartridgeRefillTypeId: null, // Будет заполнено при инициализации
+      cartridgeRefillTypeId: null,
       formData: {
         title: '',
         typeId: '',
@@ -163,30 +162,24 @@ export default {
     }
   },
   created() {
-    // Загружаем все необходимые данные
     this.loadData();
-    // Инициализируем форму данными из заявки
     this.initFormData();
   },
   methods: {
     async loadData() {
       try {
-        // Загружаем типы заявок
         if (this.requestTypes.length === 0) {
           await this.$store.dispatch('requests/fetchRequestTypes');
         }
 
-        // Загружаем приоритеты заявок
         if (this.requestPriorities.length === 0) {
           await this.$store.dispatch('requests/fetchRequestPriorities');
         }
 
-        // Загружаем оборудование
         if (this.equipmentList.length === 0) {
           await this.$store.dispatch('equipment/fetchEquipment');
         }
 
-        // Находим ID типа заявки "Заправка картриджа"
         this.findCartridgeRefillTypeId();
       } catch (error) {
         this.$store.commit('notification/SHOW_ERROR', 'Ошибка при загрузке данных');

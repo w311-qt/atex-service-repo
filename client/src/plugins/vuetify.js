@@ -1,7 +1,7 @@
 import Vue from 'vue';
 import Vuetify from 'vuetify/lib';
 import ru from 'vuetify/lib/locale/ru';
-import '@mdi/font/css/materialdesignicons.css'; // Убедитесь, что пакет @mdi/font установлен
+import '@mdi/font/css/materialdesignicons.css';
 
 Vue.use(Vuetify);
 

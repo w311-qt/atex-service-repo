@@ -28,17 +28,31 @@ const getters = {
 
 const actions = {
   async fetchEquipment({ commit }, params = {}) {
+    const shouldForce = params.force === true;
+
+    if (shouldForce) {
+      console.log('Принудительный запрос оборудования из API (force=true)');
+      commit('SET_EQUIPMENT_LIST', []); // Очищаем перед запросом
+    }
+
     commit('SET_LOADING', true);
 
     try {
-      const response = await api.get('/equipment', { params });
+      const response = await api.get('/equipment', {
+        params: { ...params, _nocache: shouldForce ? Date.now() : undefined }
+      });
 
       if (response.data && 'data' in response.data) {
         commit('SET_EQUIPMENT_LIST', response.data.data);
         commit('SET_TOTAL_EQUIPMENT', response.data.total);
+        console.log(`Получено ${response.data.data.length} единиц оборудования из API`);
+      } else if (Array.isArray(response.data)) {
+        commit('SET_EQUIPMENT_LIST', response.data);
+        commit('SET_TOTAL_EQUIPMENT', response.data.length);
+        console.log(`Получено ${response.data.length} единиц оборудования из API (массив)`);
       } else {
-        console.warn('Unexpected data structure from API:', response.data);
-        commit('SET_EQUIPMENT_LIST', Array.isArray(response.data) ? response.data : []);
+        console.warn('Неожиданный формат данных от API:', response.data);
+        commit('SET_EQUIPMENT_LIST', []);
       }
 
       return response.data;
@@ -224,7 +238,6 @@ const actions = {
     }
   },
 
-  // Удаление категории
   async deleteCategory({ commit }, id) {
     commit('SET_LOADING', true);
 
@@ -269,7 +282,6 @@ const actions = {
     }
   },
 
-  // Создание статуса
   async createStatus({ commit }, statusData) {
     commit('SET_LOADING', true);
 
@@ -285,7 +297,6 @@ const actions = {
     }
   },
 
-  // Обновление статуса
   async updateStatus({ commit }, { id, statusData }) {
     commit('SET_LOADING', true);
 
@@ -301,7 +312,6 @@ const actions = {
     }
   },
 
-  // Удаление статуса
   async deleteStatus({ commit }, id) {
     commit('SET_LOADING', true);
 
@@ -316,7 +326,6 @@ const actions = {
     }
   },
 
-  // Изменение статуса оборудования
   async changeEquipmentStatus({ commit }, { id, statusId }) {
     commit('SET_LOADING', true);
 
@@ -332,7 +341,6 @@ const actions = {
     }
   },
 
-  // Сброс текущего выбранного оборудования
   resetCurrentEquipment({ commit }) {
     commit('SET_CURRENT_EQUIPMENT', null);
   }
@@ -360,7 +368,6 @@ const mutations = {
     // Добавляем оборудование в начало списка
     state.equipmentList.unshift(equipment);
 
-    // Увеличиваем общее количество
     state.totalEquipment++;
 
     console.log('Оборудование добавлено в хранилище:', equipment);
