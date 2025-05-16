@@ -1,4 +1,3 @@
-// client/src/store/modules/requests.js
 import api from '@/services/api';
 
 const state = {
@@ -35,7 +34,6 @@ const getters = {
 };
 
 const actions = {
-  // Получение списка заявок с фильтрацией и пагинацией
   async fetchRequests({ commit }, params = {}) {
     commit('SET_LOADING', true);
 
@@ -52,7 +50,6 @@ const actions = {
     }
   },
 
-  // Получение заявки по ID
   async fetchRequestById({ commit }, id) {
     commit('SET_LOADING', true);
 
@@ -68,7 +65,6 @@ const actions = {
     }
   },
 
-  // Создание новой заявки
   async createRequest({ commit }, requestData) {
     commit('SET_LOADING', true);
 
@@ -84,7 +80,6 @@ const actions = {
     }
   },
 
-  // Обновление заявки
   async updateRequest({ commit }, { id, requestData }) {
     commit('SET_LOADING', true);
 
@@ -100,7 +95,6 @@ const actions = {
     }
   },
 
-  // Удаление заявки
   async deleteRequest({ commit }, id) {
     commit('SET_LOADING', true);
 
@@ -115,7 +109,6 @@ const actions = {
     }
   },
 
-  // Изменение статуса заявки
   async changeRequestStatus({ commit }, { id, statusId, comment }) {
     commit('SET_LOADING', true);
 
@@ -134,7 +127,6 @@ const actions = {
     }
   },
 
-  // Назначение исполнителя заявки
   async assignRequest({ commit }, { id, userId, comment }) {
     commit('SET_LOADING', true);
 
@@ -153,7 +145,6 @@ const actions = {
     }
   },
 
-  // Добавление комментария к заявке
   async addRequestComment({ commit }, { id, comment }) {
     commit('SET_LOADING', true);
 
@@ -169,7 +160,6 @@ const actions = {
     }
   },
 
-  // Завершение заявки
   async completeRequest({ commit }, { id, resolutionComment }) {
     commit('SET_LOADING', true);
 
@@ -187,7 +177,6 @@ const actions = {
     }
   },
 
-  // Отмена заявки
   async cancelRequest({ commit }, { id, reason }) {
     commit('SET_LOADING', true);
 
@@ -203,7 +192,6 @@ const actions = {
     }
   },
 
-  // Получение списка активностей для заявки
   async fetchRequestActivities({ commit }, id) {
     commit('SET_LOADING', true);
 
@@ -219,7 +207,6 @@ const actions = {
     }
   },
 
-  // Получение списка типов заявок
   async fetchRequestTypes({ commit }) {
     commit('SET_LOADING', true);
 
@@ -235,7 +222,6 @@ const actions = {
     }
   },
 
-  // Получение списка статусов заявок
   async fetchRequestStatuses({ commit }) {
     commit('SET_LOADING', true);
 
@@ -251,7 +237,6 @@ const actions = {
     }
   },
 
-  // Получение списка приоритетов заявок
   async fetchRequestPriorities({ commit }) {
     commit('SET_LOADING', true);
 
@@ -267,7 +252,6 @@ const actions = {
     }
   },
 
-  // Сброс текущей выбранной заявки
   resetCurrentRequest({ commit }) {
     commit('SET_CURRENT_REQUEST', null);
   }
@@ -297,7 +281,6 @@ const mutations = {
       state.requestsList.splice(index, 1, updatedRequest);
     }
 
-    // Обновляем текущую заявку, если она совпадает с обновленной
     if (state.currentRequest && state.currentRequest.id === updatedRequest.id) {
       state.currentRequest = updatedRequest;
     }
@@ -307,7 +290,6 @@ const mutations = {
     state.requestsList = state.requestsList.filter(item => item.id !== id);
     state.totalRequests--;
 
-    // Сбрасываем текущую заявку, если она была удалена
     if (state.currentRequest && state.currentRequest.id === id) {
       state.currentRequest = null;
     }

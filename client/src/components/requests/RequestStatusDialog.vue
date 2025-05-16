@@ -99,9 +99,7 @@ export default {
       statusRules: [
         v => !!v || 'Статус обязателен'
       ],
-      // Карта допустимых переходов статусов
       allowedTransitions: {
-        // ID текущего статуса -> массив ID допустимых новых статусов
       }
     };
   },
@@ -113,14 +111,11 @@ export default {
     requestStatuses() {
       return this.allRequestStatuses || [];
     },
-    // Фильтрация статусов, на которые можно переключить текущую заявку
     availableStatuses() {
       if (!this.request || !this.request.statusId) return [];
 
-      // Получаем текущий статус заявки
       const currentStatusId = this.request.statusId;
 
-      // Если у нас есть карта допустимых переходов, фильтруем по ней
       if (this.allowedTransitions[currentStatusId]) {
         return this.requestStatuses.filter(status =>
           this.allowedTransitions[currentStatusId].includes(status.id) &&
@@ -128,7 +123,6 @@ export default {
         );
       }
 
-      // Если карты нет или она пуста, разрешаем все статусы, кроме текущего
       return this.requestStatuses.filter(status => status.id !== currentStatusId);
     }
   },
@@ -144,7 +138,6 @@ export default {
     request: {
       handler(newVal) {
         if (newVal && newVal.statusId) {
-          // При изменении заявки, сбрасываем выбранный статус
           this.formData.statusId = '';
           this.formData.comment = '';
         }
@@ -153,21 +146,15 @@ export default {
     }
   },
   created() {
-    // Загружаем статусы заявок, если еще не загружены
     if (this.requestStatuses.length === 0) {
       this.$store.dispatch('requests/fetchRequestStatuses');
     }
 
-    // Инициализация карты допустимых переходов статусов
-    // Это можно настроить в соответствии с бизнес-логикой
     this.initializeStatusTransitions();
   },
   methods: {
     initializeStatusTransitions() {
-      // Эта функция инициализирует карту допустимых переходов статусов
-      // Пример: из статуса "Новая" можно перейти в "В работе" или "Отменена"
 
-      // Сначала получим ID статусов из их имен (предполагается, что имена уникальны)
       this.$store.dispatch('requests/fetchRequestStatuses').then(() => {
         const statuses = this.requestStatuses;
 
@@ -182,7 +169,6 @@ export default {
         const completedStatusId = findStatusIdByName('Выполнена');
         const canceledStatusId = findStatusIdByName('Отменена');
 
-        // Определяем допустимые переходы
         if (newStatusId) {
           this.allowedTransitions[newStatusId] = [
             inProgressStatusId,
@@ -206,7 +192,6 @@ export default {
           ].filter(Boolean);
         }
 
-        // Из конечных статусов переходы не разрешены
         if (completedStatusId) {
           this.allowedTransitions[completedStatusId] = [];
         }

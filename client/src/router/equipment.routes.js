@@ -1,4 +1,3 @@
-// Маршруты для модуля оборудования
 export default [
   {
     path: '/equipment',
@@ -41,7 +40,6 @@ export default [
       requiresAuth: true
     }
   },
-  // Роуты для справочников
   {
     path: '/equipment/categories',
     name: 'equipment-categories',

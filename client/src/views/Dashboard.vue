@@ -1,256 +1,4 @@
-viewRequest(id) {
-this.$router.push(`/requests/${id}`);
-},<style scoped>
-.dashboard {
-  width: 100%;
-}
-
-.chart-container {
-  height: 300px;
-  position: relative;
-  overflow: hidden;
-}
-
-canvas {
-  max-height: 250px !important;
-}
-
-.position-absolute {
-  position: absolute;
-}
-
-.bottom-0 {
-  bottom: 0;
-}
-
-.end-0 {
-  right: 0;
-}
-
-.mb-4 {
-  margin-bottom: 1rem;
-}
-
-.me-4 {
-  margin-right: 1rem;
-}
-
-.opacity-6 {
-  opacity: 0.6;
-}
-
-.requests-table, .equipment-table {
-  margin: 0 !important;
-  width: 100%;
-}
-
-/* Стили для таблиц */
-.v-data-table >>> th {
-  font-weight: 500 !important;
-  font-size: 0.875rem !important;
-  color: rgba(0, 0, 0, 0.6) !important;
-}
-
-.v-data-table >>> td {
-  font-size: 0.875rem !important;
-}
-
-/* Стили для чипсов (статусов) */
-.v-chip--small {
-  height: 24px !important;
-  font-size: 12px !important;
-}
-
-/* Улучшаем отображение таймлайна */
-.timeline-container {
-  padding: 16px !important;
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.timeline-item {
-  margin-bottom: 8px !important;
-}
-
-/* Ссылки в таблицах */
-.cursor-pointer {
-  cursor: pointer;
-}
-
-.text-decoration-none {
-  text-decoration: none;
-}
-
-/* Выравнивание контента в таблицах */
-.v-data-table >>> .v-data-table__wrapper {
-  overflow-x: hidden;
-}
-</style>    renderCategoryChart() {
-if (!this.$refs.categoryChart) {
-console.log('Элемент categoryChart не найден');
-return;
-}
-
-// Проверяем наличие данных для графика
-if (!this.stats.categoryStats || this.stats.categoryStats.length === 0) {
-console.log('Нет данных для категорий, график не будет отображен');
-return;
-}
-
-// Уничтожаем предыдущий экземпляр графика, если он существует
-if (this.categoryChart) {
-this.categoryChart.destroy();
-}
-
-try {
-const ctx = this.$refs.categoryChart.getContext('2d');
-if (!ctx) {
-console.log('Не удалось получить контекст для canvas');
-return;
-}
-
-const categoryData = this.stats.categoryStats || [];
-console.log('Данные для категорий:', categoryData);
-
-const labels = categoryData.map(item => item.category);
-const data = categoryData.map(item => item.count);
-
-// Более привлекательные цвета для категорий
-const colors = [
-'#5E35B1', // Оперативная память (фиолетовый)
-'#43A047', // HDD накопители (зеленый)
-'#039BE5', // SSD накопители (голубой)
-'#FFA000', // UPS (желтый)
-'#E53935', // Блоки питания (красный)
-'#8E24AA'  // Материнские платы (фиолетовый)
-];
-
-this.categoryChart = new Chart(ctx, {
-type: 'doughnut',
-data: {
-labels: labels,
-datasets: [{
-data: data,
-backgroundColor: colors,
-borderWidth: 1
-}]
-},
-options: {
-responsive: true,
-maintainAspectRatio: false,
-plugins: {
-legend: {
-position: 'right',
-labels: {
-padding: 20,
-boxWidth: 10,
-font: {
-size: 12
-}
-}
-},
-tooltip: {
-callbacks: {
-label: function(context) {
-const label = context.label || '';
-const value = context.raw || 0;
-const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-return `${label}: ${value} (${percentage}%)`;
-}
-}
-}
-}
-}
-});
-
-console.log('График категорий создан успешно');
-} catch (error) {
-console.error('Ошибка при рендеринге графика категорий:', error);
-}
-},
-
-renderStatusChart() {
-if (!this.$refs.statusChart) {
-console.log('Элемент statusChart не найден');
-return;
-}
-
-// Проверяем наличие данных для графика
-if (!this.stats.statusStats || this.stats.statusStats.length === 0) {
-console.log('Нет данных для статусов, график не будет отображен');
-return;
-}
-
-// Уничтожаем предыдущий экземпляр графика, если он существует
-if (this.statusChart) {
-this.statusChart.destroy();
-}
-
-try {
-const ctx = this.$refs.statusChart.getContext('2d');
-if (!ctx) {
-console.log('Не удалось получить контекст для canvas');
-return;
-}
-
-const statusData = this.stats.statusStats || [];
-console.log('Данные для статусов:', statusData);
-
-const labels = statusData.map(item => item.status);
-const data = statusData.map(item => item.count);
-
-// Настраиваем цвета в соответствии с названиями статусов
-const colors = statusData.map(item => {
-const statusName = item.status.toLowerCase();
-if (statusName.includes('рабоч')) return '#42A5F5'; // Синий для "Рабочий"
-if (statusName.includes('нов')) return '#2196F3'; // Голубой для "Новый"
-if (statusName.includes('дефект')) return '#607D8B'; // Серый для "Дефектный"
-if (statusName.includes('нерабоч')) return '#455A64'; // Темный серый для "Нерабочий"
-return '#9E9E9E'; // По умолчанию серый
-});
-
-this.statusChart = new Chart(ctx, {
-type: 'doughnut',
-data: {
-labels: labels,
-datasets: [{
-data: data,
-backgroundColor: colors,
-borderWidth: 1
-}]
-},
-options: {
-responsive: true,
-maintainAspectRatio: false,
-plugins: {
-legend: {
-position: 'right',
-labels: {
-padding: 20,
-boxWidth: 10
-}
-},
-tooltip: {
-callbacks: {
-label: function(context) {
-const label = context.label || '';
-const value = context.raw || 0;
-const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
-return `${label}: ${value} (${percentage}%)`;
-}
-}
-}
-}
-}
-});
-
-console.log('График статусов создан успешно');
-} catch (error) {
-console.error('Ошибка при рендеринге графика статусов:', error);
-}
-},<template>
+<template>
   <div class="dashboard">
     <v-card flat class="mb-4">
       <v-card-title class="d-flex align-center py-2">
@@ -322,7 +70,7 @@ console.error('Ошибка при рендеринге графика стат�
     <!-- Графики -->
     <v-row class="mt-4">
       <v-col cols="12" md="6">
-        <v-card outlined height="300px">
+        <v-card outlined height="390px">
           <v-card-title class="py-2 grey lighten-4">
             <v-icon left>mdi-chart-donut</v-icon>
             Распределение оборудования по категориям
@@ -335,12 +83,12 @@ console.error('Ошибка при рендеринге графика стат�
               <v-icon large color="grey lighten-1">mdi-chart-donut</v-icon>
               <p class="mt-2 grey--text">Нет данных для отображения</p>
             </div>
-            <canvas v-else ref="categoryChart" style="height: 250px !important;"></canvas>
+            <canvas v-else ref="categoryChart" class="chart-canvas"></canvas>
           </v-card-text>
         </v-card>
       </v-col>
       <v-col cols="12" md="6">
-        <v-card outlined height="300px">
+        <v-card outlined height="390px">
           <v-card-title class="py-2 grey lighten-4">
             <v-icon left>mdi-chart-donut</v-icon>
             Распределение оборудования по статусам
@@ -353,7 +101,7 @@ console.error('Ошибка при рендеринге графика стат�
               <v-icon large color="grey lighten-1">mdi-chart-donut</v-icon>
               <p class="mt-2 grey--text">Нет данных для отображения</p>
             </div>
-            <canvas v-else ref="statusChart" style="height: 250px !important;"></canvas>
+            <canvas v-else ref="statusChart" class="chart-canvas"></canvas>
           </v-card-text>
         </v-card>
       </v-col>
@@ -394,7 +142,7 @@ console.error('Ошибка при рендеринге графика стат�
                   text
                   color="primary"
                   small
-                  :to="{ name: 'RequestDetails', params: { id: item.id } }"
+                  @click="viewRequest(item.id)"
                 >
                   {{ item.number }}
                 </v-btn>
@@ -637,7 +385,6 @@ export default {
       }
     }, 1000);
   },
-
   beforeDestroy() {
     window.removeEventListener('resize', this.handleResize);
 
@@ -650,13 +397,17 @@ export default {
     }
   },
   methods: {
-    // Обработка просмотра заявки (аналогично RequestListView)
+    viewRequest(id) {
+      this.$router.push(`/requests/${id}`);
+    },
+
     handleResize() {
       // Перерисовываем графики при изменении размера окна
       if (this.categoryChart || this.statusChart) {
         this.renderCharts();
       }
     },
+
     async fetchDashboardData() {
       this.loading = true;
       try {
@@ -670,9 +421,22 @@ export default {
           statusStats: []
         };
 
-        // Загружаем все данные для дашборда
+        // Предварительно загрузим все необходимые данные в хранилище
         try {
-          // Загружаем статистику
+          await Promise.all([
+            // Убедимся, что данные оборудования загружены
+            this.$store.dispatch('equipment/fetchEquipment'),
+            // Убедимся, что данные категорий загружены
+            this.$store.dispatch('equipment/fetchCategories'),
+            // Убедимся, что данные статусов загружены
+            this.$store.dispatch('equipment/fetchStatuses')
+          ]);
+        } catch (error) {
+          console.error('Ошибка при предварительной загрузке данных:', error);
+        }
+
+        // Загружаем статистику
+        try {
           const statsResponse = await this.$store.dispatch('dashboard/fetchStatistics');
 
           // Устанавливаем данные из API (если они есть)
@@ -713,23 +477,6 @@ export default {
           this.attentionEquipment = [];
         }
 
-        // Загружаем категории и статусы, если они еще не загружены
-        if (!this.allCategories || this.allCategories.length === 0) {
-          try {
-            await this.$store.dispatch('equipment/fetchCategories');
-          } catch (error) {
-            console.error('Ошибка при загрузке категорий:', error);
-          }
-        }
-
-        if (!this.allStatuses || this.allStatuses.length === 0) {
-          try {
-            await this.$store.dispatch('equipment/fetchStatuses');
-          } catch (error) {
-            console.error('Ошибка при загрузке статусов:', error);
-          }
-        }
-
         // Рендерим графики после загрузки данных
         this.$nextTick(() => {
           this.renderCharts();
@@ -754,147 +501,241 @@ export default {
       }
     },
 
-    refreshData() {
+    async refreshData() {
       this.refreshing = true;
-      this.fetchDashboardData().then(() => {
-        setTimeout(() => {
-          this.renderCharts();
-          this.refreshing = false;
-        }, 300);
-      }).catch(() => {
+
+      try {
+        // Сначала обновим данные в хранилище
+        await Promise.all([
+          this.$store.dispatch('equipment/fetchEquipment'),
+          this.$store.dispatch('requests/fetchRequests'),
+          this.$store.dispatch('equipment/fetchCategories'),
+          this.$store.dispatch('equipment/fetchStatuses')
+        ]);
+
+        // Затем загрузим данные для дашборда
+        await this.fetchDashboardData();
+
+        // Рендерим графики после обновления данных
+        this.$nextTick(() => {
+          setTimeout(() => {
+            this.renderCharts();
+          }, 300);
+        });
+
+        this.$store.commit('notification/SHOW_SUCCESS', 'Данные успешно обновлены');
+      } catch (error) {
+        console.error('Ошибка при обновлении данных:', error);
+        this.$store.commit('notification/SHOW_ERROR', 'Ошибка при обновлении данных');
+      } finally {
         this.refreshing = false;
-      });
+      }
     },
 
     renderCharts() {
-      console.log('Запуск отрисовки графиков...');
+      console.log('Запуск отрисовки графиков с данными:', {
+        categoryStats: this.stats.categoryStats ? this.stats.categoryStats.length : 0,
+        statusStats: this.stats.statusStats ? this.stats.statusStats.length : 0
+      });
 
-      // Проверяем, что DOM полностью загружен
+      if (this.categoryChart) {
+        console.log('Уничтожение существующего графика категорий');
+        this.categoryChart.destroy();
+        this.categoryChart = null;
+      }
+
+      if (this.statusChart) {
+        console.log('Уничтожение существующего графика статусов');
+        this.statusChart.destroy();
+        this.statusChart = null;
+      }
+
+      // Используем nextTick для гарантии обновления DOM
       this.$nextTick(() => {
-        // Используем более длительный таймаут, чтобы DOM успел обновиться и каналы были видимы
-        setTimeout(() => {
-          console.log('Отрисовываем графики...');
+        // Отрисовываем график категорий
+        if (this.$refs.categoryChart && this.stats.categoryStats && this.stats.categoryStats.length > 0) {
+          console.log('Создание нового графика категорий с данными:', this.stats.categoryStats);
+          this.renderCategoryChart();
+        } else {
+          console.warn('Невозможно отрисовать график категорий: DOM-элемент не найден или нет данных');
+        }
 
-          // Проверяем наличие элементов canvas в DOM
-          if (this.$refs.categoryChart) {
-            console.log('Отрисовываем график категорий...');
-            this.renderCategoryChart();
-          } else {
-            console.warn('Элемент categoryChart не найден в DOM');
-          }
-
-          if (this.$refs.statusChart) {
-            console.log('Отрисовываем график статусов...');
-            this.renderStatusChart();
-          } else {
-            console.warn('Элемент statusChart не найден в DOM');
-          }
-        }, 500);
+        // Отрисовываем график статусов
+        if (this.$refs.statusChart && this.stats.statusStats && this.stats.statusStats.length > 0) {
+          console.log('Создание нового графика статусов с данными:', this.stats.statusStats);
+          this.renderStatusChart();
+        } else {
+          console.warn('Невозможно отрисовать график статусов: DOM-элемент не найден или нет данных');
+        }
       });
     },
 
+
     renderCategoryChart() {
-      if (!this.$refs.categoryChart || !this.stats.categoryStats || this.stats.categoryStats.length === 0) return;
+      if (!this.$refs.categoryChart) {
+        console.log('Элемент categoryChart не найден');
+        return;
+      }
+
+      // Проверяем наличие данных для графика
+      if (!this.stats.categoryStats || this.stats.categoryStats.length === 0) {
+        console.log('Нет данных для категорий, график не будет отображен');
+        return;
+      }
 
       // Уничтожаем предыдущий экземпляр графика, если он существует
       if (this.categoryChart) {
         this.categoryChart.destroy();
       }
 
-      const ctx = this.$refs.categoryChart.getContext('2d');
+      try {
+        const ctx = this.$refs.categoryChart.getContext('2d');
+        if (!ctx) {
+          console.log('Не удалось получить контекст для canvas');
+          return;
+        }
 
-      const categoryData = this.stats.categoryStats || [];
-      const labels = categoryData.map(item => item.category);
-      const data = categoryData.map(item => item.count);
-      const colors = this.generateChartColors(data.length);
+        const categoryData = this.stats.categoryStats || [];
+        console.log('Данные для категорий:', categoryData);
 
-      this.categoryChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: labels,
-          datasets: [{
-            data: data,
-            backgroundColor: colors,
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'right',
-              labels: {
-                padding: 20,
-                boxWidth: 10
-              }
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const label = context.label || '';
-                  const value = context.raw || 0;
-                  const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                  const percentage = Math.round((value / total) * 100);
-                  return `${label}: ${value} (${percentage}%)`;
+        const labels = categoryData.map(item => item.category);
+        const data = categoryData.map(item => item.count);
+
+        // Более привлекательные цвета для категорий
+        const colors = [
+          '#6b509a', // Оперативная память (фиолетовый)
+          '#3660bd', // HDD накопители (зеленый)
+          '#0b18e8', // SSD накопители (голубой)
+          '#003453', // UPS (желтый)
+          '#495c85', // Блоки питания (красный)
+          '#8E24AA'  // Материнские платы (фиолетовый)
+        ];
+
+        this.categoryChart = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: data,
+              backgroundColor: colors,
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'right',
+                labels: {
+                  padding: 20,
+                  boxWidth: 10,
+                  font: {
+                    size: 12
+                  }
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const label = context.label || '';
+                    const value = context.raw || 0;
+                    const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                    return `${label}: ${value} (${percentage}%)`;
+                  }
                 }
               }
             }
           }
-        }
-      });
+        });
+
+        console.log('График категорий создан успешно');
+      } catch (error) {
+        console.error('Ошибка при рендеринге графика категорий:', error);
+      }
     },
 
     renderStatusChart() {
-      if (!this.$refs.statusChart || !this.stats.statusStats || this.stats.statusStats.length === 0) return;
+      if (!this.$refs.statusChart) {
+        console.log('Элемент statusChart не найден');
+        return;
+      }
+
+      // Проверяем наличие данных для графика
+      if (!this.stats.statusStats || this.stats.statusStats.length === 0) {
+        console.log('Нет данных для статусов, график не будет отображен');
+        return;
+      }
 
       // Уничтожаем предыдущий экземпляр графика, если он существует
       if (this.statusChart) {
         this.statusChart.destroy();
       }
 
-      const ctx = this.$refs.statusChart.getContext('2d');
+      try {
+        const ctx = this.$refs.statusChart.getContext('2d');
+        if (!ctx) {
+          console.log('Не удалось получить контекст для canvas');
+          return;
+        }
 
-      const statusData = this.stats.statusStats || [];
-      const labels = statusData.map(item => item.status);
-      const data = statusData.map(item => item.count);
-      const colors = this.getStatusColors(labels);
+        const statusData = this.stats.statusStats || [];
+        console.log('Данные для статусов:', statusData);
 
-      this.statusChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: labels,
-          datasets: [{
-            data: data,
-            backgroundColor: colors,
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'right',
-              labels: {
-                padding: 20,
-                boxWidth: 10
-              }
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const label = context.label || '';
-                  const value = context.raw || 0;
-                  const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                  const percentage = Math.round((value / total) * 100);
-                  return `${label}: ${value} (${percentage}%)`;
+        const labels = statusData.map(item => item.status);
+        const data = statusData.map(item => item.count);
+
+        // Настраиваем цвета в соответствии с названиями статусов
+        const colors = statusData.map(item => {
+          const statusName = item.status.toLowerCase();
+          if (statusName.includes('рабоч')) return '#002278'; // Синий для "Рабочий"
+          if (statusName.includes('нов')) return '#2196F3'; // Голубой для "Новый"
+          if (statusName.includes('дефект')) return '#607D8B'; // Серый для "Дефектный"
+          if (statusName.includes('нерабоч')) return '#421111'; // Темный серый для "Нерабочий"
+          return '#9E9E9E'; // По умолчанию серый
+        });
+
+        this.statusChart = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: data,
+              backgroundColor: colors,
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'right',
+                labels: {
+                  padding: 20,
+                  boxWidth: 10
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const label = context.label || '';
+                    const value = context.raw || 0;
+                    const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                    const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                    return `${label}: ${value} (${percentage}%)`;
+                  }
                 }
               }
             }
           }
-        }
-      });
+        });
+
+        console.log('График статусов создан успешно');
+      } catch (error) {
+        console.error('Ошибка при рендеринге графика статусов:', error);
+      }
     },
 
     formatDateTime(dateString) {
@@ -1040,66 +881,31 @@ export default {
 };
 </script>
 
-<style scoped>
+<style>
 .dashboard {
   width: 100%;
+  background-color: var(--background-color);
+  padding-bottom: 24px;
 }
 
-.position-absolute {
-  position: absolute;
-}
+@media (max-width: 600px) {
+  .v-card__title {
+    font-size: 1rem !important;
+    padding: 12px 16px !important;
+  }
 
-.bottom-0 {
-  bottom: 0;
-}
+  .v-card__text {
+    padding: 12px 16px !important;
+  }
 
-.end-0 {
-  right: 0;
-}
+  .text-h4 {
+    font-size: 1.5rem !important;
+  }
 
-.mb-4 {
-  margin-bottom: 1rem;
+  .chart-canvas {
+    height: 240px !important;
+    max-height: 240px !important;
+    margin-top: 0 !important;
+  }
 }
-
-.me-4 {
-  margin-right: 1rem;
-}
-
-.opacity-6 {
-  opacity: 0.6;
-}
-
-.requests-table, .equipment-table {
-  margin: 0 !important;
-  width: 100%;
-}
-
-/* Фиксированная высота для графиков */
-canvas {
-  height: 250px !important;
-  max-height: 250px !important;
-  margin-top: 0 !important;
-}
-
-/* Устраняем наплыв элементов */
-.v-timeline-item {
-  margin-bottom: 10px;
-}
-
-/* Добавляем отступы у кнопок */
-.v-btn {
-  margin: 2px;
-}
-
-/* Улучшаем отображение статусов */
-.v-chip--small {
-  height: 24px !important;
-  font-size: 12px !important;
-}
-
-/* Ограничиваем высоту таблиц */
-.v-data-table {
-  max-height: 350px;
-  overflow-y: auto;
-}
-</style>'
+</style>

@@ -1,6 +1,5 @@
 <template>
   <v-app>
-    <!-- App Bar (верхняя панель) -->
     <v-app-bar color="primary" dark app flat>
       <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
       <v-toolbar-title class="ml-0 pl-3">
@@ -9,7 +8,6 @@
       </v-toolbar-title>
       <v-spacer></v-spacer>
 
-      <!-- Поисковая строка -->
       <v-text-field
         v-if="isLoggedIn"
         class="mt-7 hidden-sm-and-down"
@@ -24,7 +22,6 @@
 
       <v-spacer></v-spacer>
 
-      <!-- Уведомления -->
       <v-badge
         v-if="isLoggedIn"
         :content="notificationsCount"
@@ -37,7 +34,6 @@
         </v-btn>
       </v-badge>
 
-      <!-- Пользовательское меню -->
       <v-menu
         v-if="isLoggedIn"
         bottom
@@ -84,7 +80,6 @@
       </v-menu>
     </v-app-bar>
 
-    <!-- Боковое меню -->
     <v-navigation-drawer
       v-model="drawer"
       app
@@ -110,7 +105,6 @@
 
         <v-divider class="my-2"></v-divider>
 
-        <!-- Навигационные элементы -->
         <v-list-item
           v-for="item in menuItems"
           :key="item.title"
@@ -136,14 +130,12 @@
       </template>
     </v-navigation-drawer>
 
-    <!-- Основной контент -->
     <v-main>
       <v-container fluid class="pa-4">
         <router-view></router-view>
       </v-container>
     </v-main>
 
-    <!-- Нижняя панель -->
     <v-footer app color="transparent" height="48" inset>
       <span class="text-caption grey--text">
         &copy; {{ new Date().getFullYear() }} ATЭКС-Электро

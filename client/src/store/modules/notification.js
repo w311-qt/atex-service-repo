@@ -1,5 +1,3 @@
-// client/src/store/modules/notification.js
-
 const state = {
   notifications: [],
   nextId: 1
@@ -66,13 +64,11 @@ const actions = {
 
 const mutations = {
   ADD_NOTIFICATION(state, notification) {
-    // Добавляем уведомление в массив
     state.notifications.push({
       ...notification,
       id: state.nextId++
     });
 
-    // Если указан таймаут, настраиваем автоматическое удаление через указанное время
     if (notification.timeout > 0) {
       setTimeout(() => {
         const index = state.notifications.findIndex(n => n.id === notification.id);

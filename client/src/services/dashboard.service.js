@@ -2,7 +2,7 @@ import api from './api';
 import store from '@/store';
 
 /**
- * Сервис для работы с данными дашборда
+ * Dashboard.vue
  */
 class DashboardService {
   /**
@@ -11,58 +11,117 @@ class DashboardService {
    */
   async getStatistics() {
     try {
-      // Загружаем данные из хранилища, если они ещё не загружены
-      if (store.getters['equipment/allEquipment'].length === 0) {
+      const equipment = store.getters['equipment/allEquipment'] || [];
+      const requests = store.getters['requests/allRequests'] || [];
+      const categories = store.getters['equipment/allCategories'] || [];
+      const statuses = store.getters['equipment/allStatuses'] || [];
+
+      if (equipment.length === 0) {
         await store.dispatch('equipment/fetchEquipment');
       }
-      if (store.getters['requests/allRequests'].length === 0) {
+      if (requests.length === 0) {
         await store.dispatch('requests/fetchRequests');
       }
-      if (store.getters['equipment/allCategories'].length === 0) {
+      if (categories.length === 0) {
         await store.dispatch('equipment/fetchCategories');
       }
-      if (store.getters['equipment/allStatuses'].length === 0) {
+      if (statuses.length === 0) {
         await store.dispatch('equipment/fetchStatuses');
       }
 
-      // Получаем данные из хранилища
-      const equipment = store.getters['equipment/allEquipment'];
-      const requests = store.getters['requests/allRequests'];
-      const categories = store.getters['equipment/allCategories'];
-      const statuses = store.getters['equipment/allStatuses'];
+      const updatedEquipment = store.getters['equipment/allEquipment'] || [];
+      const updatedRequests = store.getters['requests/allRequests'] || [];
+      const updatedCategories = store.getters['equipment/allCategories'] || [];
+      const updatedStatuses = store.getters['equipment/allStatuses'] || [];
 
       console.log('Данные из хранилища для формирования статистики:', {
-        equipment: equipment.length,
-        requests: requests.length,
-        categories: categories.length,
-        statuses: statuses.length
+        equipment: updatedEquipment.length,
+        requests: updatedRequests.length,
+        categories: updatedCategories.length,
+        statuses: updatedStatuses.length
       });
 
-      // Считаем количество оборудования
-      const equipmentTotal = equipment.length;
+      // DEBUG
+      console.log('Структура первых 3-х единиц оборудования:',
+        updatedEquipment.slice(0, 3).map(eq => ({
+          id: eq.id,
+          name: eq.name,
+          status: eq.status,
+          statusId: eq.statusId,
+          statusStr: typeof eq.status === 'object' ? eq.status?.name : 'не объект'
+        }))
+      );
 
-      // Считаем количество активных заявок (не выполненных и не отмененных)
-      const activeRequests = requests.filter(req => {
-        return req.status &&
-          req.status.name !== 'Выполнена' &&
-          req.status.name !== 'Отменена';
+      // DEBUG
+      console.log('Доступные статусы:',
+        updatedStatuses.map(s => ({
+          id: s.id,
+          name: s.name,
+          nameLower: s.name?.toLowerCase()
+        }))
+      );
+
+      const equipmentTotal = updatedEquipment.length;
+
+      const activeRequests = updatedRequests.filter(req => {
+        if (req.status && typeof req.status === 'object') {
+          return req.status.name !== 'Выполнена' && req.status.name !== 'Отменена';
+        }
+        const statusObj = updatedStatuses.find(s => s.id === req.statusId);
+        return statusObj && statusObj.name !== 'Выполнена' && statusObj.name !== 'Отменена';
       }).length;
 
-      // Считаем количество рабочего оборудования
-      const workingEquipment = equipment.filter(eq => {
-        return eq.status && eq.status.name === 'Рабочий';
+      const workingStatusPatterns = ['рабочее', 'новый'];
+      const excludedStatusList = ['Нерабочее', 'Дефектное'];
+
+      const workingStatusIds = updatedStatuses
+        .filter(s => !excludedStatusList.includes(s.name))
+        .map(s => s.id);
+
+      console.log('ID рабочих статусов:', workingStatusIds);
+
+      const attentionStatusPatterns = ['дефект', 'нерабоч', 'проблем', 'внимани', 'defect', 'fault', 'error'];
+
+      const attentionStatusIds = updatedStatuses
+        .filter(s => {
+          if (['Дефектный', 'Дефектное', 'Нерабочий', 'Нерабочее'].includes(s.name))
+            return true;
+
+          const nameLower = s.name?.toLowerCase() || '';
+          return attentionStatusPatterns.some(pattern => nameLower.includes(pattern));
+        })
+        .map(s => s.id);
+
+      console.log('ID проблемных статусов:', attentionStatusIds);
+
+      const workingEquipment = updatedEquipment.filter(eq => {
+        if (eq.status && typeof eq.status === 'object') {
+          const statusName = eq.status.name?.toLowerCase() || '';
+          if (workingStatusPatterns.some(pattern => statusName.includes(pattern))) {
+            return true;
+          }
+        }
+
+        return workingStatusIds.includes(eq.statusId);
       }).length;
 
-      // Считаем количество оборудования, требующего внимания
-      const needAttention = equipment.filter(eq => {
-        return eq.status &&
-          (eq.status.name === 'Дефектный' ||
-            eq.status.name === 'Нерабочий');
+      console.log('Количество рабочего оборудования:', workingEquipment);
+
+      const needAttention = updatedEquipment.filter(eq => {
+        if (eq.status && typeof eq.status === 'object') {
+          const statusName = eq.status.name?.toLowerCase() || '';
+          if (attentionStatusPatterns.some(pattern => statusName.includes(pattern))) {
+            return true;
+          }
+        }
+
+        return attentionStatusIds.includes(eq.statusId);
       }).length;
 
-      // Формируем статистику по категориям
-      const categoryStats = categories.map(category => {
-        const count = equipment.filter(eq => {
+      console.log('Количество оборудования, требующего внимания:', needAttention);
+
+      const categoryStats = updatedCategories.map(category => {
+        const count = updatedEquipment.filter(eq => {
           return eq.categoryId === category.id ||
             (eq.category && eq.category.id === category.id);
         }).length;
@@ -73,9 +132,8 @@ class DashboardService {
         };
       }).filter(item => item.count > 0);
 
-      // Формируем статистику по статусам
-      const statusStats = statuses.map(status => {
-        const count = equipment.filter(eq => {
+      const statusStats = updatedStatuses.map(status => {
+        const count = updatedEquipment.filter(eq => {
           return eq.statusId === status.id ||
             (eq.status && eq.status.id === status.id);
         }).length;
@@ -99,7 +157,6 @@ class DashboardService {
       return result;
     } catch (error) {
       console.error('Ошибка при формировании статистики из хранилища:', error);
-      // Возвращаем пустую статистику в случае ошибки
       return {
         equipmentTotal: 0,
         activeRequests: 0,
@@ -118,23 +175,19 @@ class DashboardService {
    */
   async getRecentRequests(limit = 5) {
     try {
-      // Загружаем заявки, если они ещё не загружены
       if (store.getters['requests/allRequests'].length === 0) {
         await store.dispatch('requests/fetchRequests');
       }
 
-      // Получаем заявки из хранилища
       const requests = store.getters['requests/allRequests'];
       console.log(`Получено ${requests.length} заявок из хранилища`);
 
-      // Сортируем по дате создания (от новых к старым)
       const sortedRequests = [...requests].sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
         const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
         return dateB - dateA;
       });
 
-      // Возвращаем только необходимое количество
       const result = sortedRequests.slice(0, limit);
       console.log(`Возвращаем ${result.length} последних заявок`);
       return result;
@@ -151,75 +204,12 @@ class DashboardService {
    */
   async getRecentActivities(limit = 5) {
     try {
-      // Попробуем сначала получить данные из API
-      try {
-        const response = await api.get('/request-activities/recent', {
-          params: { limit }
-        });
-        console.log(`Получено ${response.data.length} активностей из API`);
-        return response.data;
-      } catch (apiError) {
-        console.warn('Не удалось получить активности из API, создаем имитацию:', apiError);
-
-        // Если не удалось получить из API, создадим имитацию на основе заявок
-        if (store.getters['requests/allRequests'].length === 0) {
-          await store.dispatch('requests/fetchRequests');
-        }
-
-        const requests = store.getters['requests/allRequests'];
-        const currentUser = store.getters['auth/currentUser'] || { name: 'Пользователь' };
-
-        // Создаем имитацию активностей на основе заявок
-        const mockActivities = requests
-          .slice(0, limit * 2) // Берем больше заявок для разнообразия
-          .map((request, index) => {
-            // Чередуем типы активностей для разнообразия
-            const types = ['create', 'statusChange', 'comment', 'assign', 'complete'];
-            const type = types[index % types.length];
-
-            let message = '';
-            switch (type) {
-              case 'create':
-                message = `Создана заявка ${request.number}: ${request.title}`;
-                break;
-              case 'statusChange':
-                message = `Заявка ${request.number} переведена в статус "${request.status?.name || 'Новый'}"`;
-                break;
-              case 'comment':
-                message = `Добавлен комментарий к заявке ${request.number}`;
-                break;
-              case 'assign':
-                message = `Заявка ${request.number} назначена на исполнителя`;
-                break;
-              case 'complete':
-                message = `Заявка ${request.number} выполнена`;
-                break;
-              default:
-                message = `Действие с заявкой ${request.number}`;
-            }
-
-            return {
-              id: `mock-${index + 1}`,
-              type: type,
-              message: message,
-              timestamp: request.createdAt || new Date(),
-              user: currentUser
-            };
-          });
-
-        // Сортируем по дате (от новых к старым)
-        const sortedActivities = mockActivities.sort((a, b) => {
-          const dateA = a.timestamp ? new Date(a.timestamp) : new Date(0);
-          const dateB = b.timestamp ? new Date(b.timestamp) : new Date(0);
-          return dateB - dateA;
-        });
-
-        // Возвращаем только необходимое количество
-        return sortedActivities.slice(0, limit);
-      }
-    } catch (error) {
-      console.error('Ошибка при получении последних активностей:', error);
-      return [];
+      const response = await api.get('/request-activities/recent', {
+        params: { limit } });
+      console.log(`Получено ${response.data.length} активностей из API`);
+      return response.data;
+    } catch (apiError) {
+      console.warn('Не удалось получить активности из API, создаем имитацию:', apiError);
     }
   }
 
@@ -230,16 +220,13 @@ class DashboardService {
    */
   async getAttentionEquipment(limit = 5) {
     try {
-      // Загружаем оборудование, если оно ещё не загружено
       if (store.getters['equipment/allEquipment'].length === 0) {
         await store.dispatch('equipment/fetchEquipment');
       }
 
-      // Получаем оборудование из хранилища
       const equipment = store.getters['equipment/allEquipment'];
       console.log(`Получено ${equipment.length} единиц оборудования из хранилища`);
 
-      // Фильтруем оборудование с проблемными статусами
       const problemEquipment = equipment.filter(eq => {
         return eq.status &&
           (eq.status.name === 'Дефектный' ||
@@ -248,7 +235,6 @@ class DashboardService {
 
       console.log(`Найдено ${problemEquipment.length} единиц оборудования, требующего внимания`);
 
-      // Возвращаем только необходимое количество
       return problemEquipment.slice(0, limit);
     } catch (error) {
       console.error('Ошибка при получении оборудования, требующего внимания:', error);
@@ -262,7 +248,6 @@ class DashboardService {
    */
   async getEquipmentByCategory() {
     try {
-      // Получаем статистику, которая уже включает распределение по категориям
       const stats = await this.getStatistics();
       return stats.categoryStats || [];
     } catch (error) {
@@ -277,7 +262,6 @@ class DashboardService {
    */
   async getEquipmentByStatus() {
     try {
-      // Получаем статистику, которая уже включает распределение по статусам
       const stats = await this.getStatistics();
       return stats.statusStats || [];
     } catch (error) {

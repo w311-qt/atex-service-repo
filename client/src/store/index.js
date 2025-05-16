@@ -1,8 +1,6 @@
-// client/src/store/index.js
 import Vue from 'vue';
 import Vuex from 'vuex';
 
-// Импорт модулей
 import auth from './modules/auth';
 import equipment from './modules/equipment';
 import requests from './modules/requests';

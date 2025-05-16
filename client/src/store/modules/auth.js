@@ -1,8 +1,6 @@
-// client/src/store/modules/auth.js
 import api from '@/services/api';
 import router from '@/router';
 
-// Функция для получения данных из localStorage
 const getStoredAuthData = () => {
   const token = localStorage.getItem('auth_token');
   const userString = localStorage.getItem('auth_user');
@@ -13,7 +11,6 @@ const getStoredAuthData = () => {
       user = JSON.parse(userString);
     }
   } catch (e) {
-    // Если произошла ошибка при парсинге, очищаем localStorage
     localStorage.removeItem('auth_user');
   }
 
@@ -53,7 +50,6 @@ const actions = {
 
       const { access_token, user } = response.data;
 
-      // Проверяем структуру ответа
       if (!access_token || !user) {
         console.error('Invalid response structure:', response.data);
         throw new Error('Неверный формат ответа от сервера');
@@ -61,7 +57,6 @@ const actions = {
 
       commit('SET_AUTH_DATA', { token: access_token, user });
 
-      // Сохраняем данные в localStorage
       localStorage.setItem('auth_token', access_token);
       localStorage.setItem('auth_user', JSON.stringify(user));
 
@@ -99,14 +94,11 @@ const actions = {
   },
 
   logout({ commit }) {
-    // Удаляем данные из localStorage
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
 
-    // Очищаем состояние
     commit('CLEAR_AUTH_DATA');
 
-    // Перенаправляем на страницу логина
     router.push('/login');
   },
 
@@ -132,11 +124,9 @@ const actions = {
     try {
       const response = await api.patch(`/users/${state.user.id}/profile`, profileData);
 
-      // Обновляем данные пользователя
       const updatedUser = { ...state.user, ...response.data };
       commit('SET_USER', updatedUser);
 
-      // Обновляем локальное хранилище
       localStorage.setItem('auth_user', JSON.stringify(updatedUser));
 
       return response.data;

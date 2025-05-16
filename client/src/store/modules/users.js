@@ -1,4 +1,3 @@
-// client/src/store/modules/users.js
 import api from '@/services/api';
 
 const state = {
@@ -21,7 +20,6 @@ const getters = {
 };
 
 const actions = {
-  // Получение списка пользователей с фильтрацией и пагинацией
   async fetchUsers({ commit }, params = {}) {
     commit('SET_LOADING', true);
 
@@ -38,7 +36,6 @@ const actions = {
     }
   },
 
-  // Получение списка техников
   async fetchTechnicians({ commit }) {
     commit('SET_LOADING', true);
 
@@ -54,7 +51,6 @@ const actions = {
     }
   },
 
-  // Получение пользователя по ID
   async fetchUserById({ commit }, id) {
     commit('SET_LOADING', true);
 
@@ -70,7 +66,6 @@ const actions = {
     }
   },
 
-  // Создание нового пользователя
   async createUser({ commit }, userData) {
     commit('SET_LOADING', true);
 
@@ -86,7 +81,6 @@ const actions = {
     }
   },
 
-  // Обновление пользователя
   async updateUser({ commit }, { id, userData }) {
     commit('SET_LOADING', true);
 
@@ -102,7 +96,6 @@ const actions = {
     }
   },
 
-  // Сброс пароля пользователя
   async resetPassword({ commit }, { id, password }) {
     commit('SET_LOADING', true);
 
@@ -116,7 +109,6 @@ const actions = {
     }
   },
 
-  // Изменение статуса пользователя (активировать/деактивировать)
   async toggleUserStatus({ commit }, { id, isActive }) {
     commit('SET_LOADING', true);
 
@@ -160,7 +152,6 @@ const mutations = {
       state.users.splice(index, 1, updatedUser);
     }
 
-    // Обновляем список техников, если пользователь там есть
     const techIndex = state.technicians.findIndex(tech => tech.id === updatedUser.id);
     if (techIndex !== -1) {
       if (updatedUser.role === 'technician') {
@@ -172,7 +163,6 @@ const mutations = {
       state.technicians.push(updatedUser);
     }
 
-    // Обновляем currentUser, если это тот же пользователь
     if (state.currentUser && state.currentUser.id === updatedUser.id) {
       state.currentUser = updatedUser;
     }

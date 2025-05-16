@@ -9,7 +9,6 @@
 
       <template v-else-if="request">
         <v-row>
-          <!-- Кнопки навигации и действий -->
           <v-col cols="12" class="d-flex align-center mb-4">
             <v-btn
               color="primary"
@@ -67,7 +66,6 @@
         </v-row>
 
         <v-row>
-          <!-- Основная информация о заявке -->
           <v-col cols="12" md="8">
             <v-card>
               <v-card-title>
@@ -135,7 +133,6 @@
 
                 <v-divider class="my-4"></v-divider>
 
-                <!-- Информация об оборудовании, если указано -->
                 <template v-if="request.equipmentId && request.equipment">
                   <div class="subtitle-1 mb-2">Оборудование</div>
                   <v-row>
@@ -165,7 +162,6 @@
                   <v-divider class="my-4"></v-divider>
                 </template>
 
-                <!-- Информация о картридже, если это заявка на заправку -->
                 <template v-if="request.cartridgeModel">
                   <div class="subtitle-1 mb-2">Картридж</div>
                   <v-row>
@@ -207,7 +203,6 @@
             </v-card>
           </v-col>
 
-          <!-- История активностей по заявке -->
           <v-col cols="12" md="4">
             <v-card>
               <v-card-title>История активностей</v-card-title>
@@ -248,7 +243,6 @@
       </v-row>
     </v-container>
 
-    <!-- Диалоги для работы с заявкой -->
     <request-status-dialog
       :dialog="statusDialog"
       :request="request"
@@ -364,64 +358,51 @@ export default {
     request() {
       return this.$store.getters['requests/currentRequest'];
     },
-    // Проверка прав на управление заявкой
     canManageRequest() {
       if (!this.request || !this.currentUser) return false;
 
-      // Администраторы могут всё
       if (this.isAdmin) return true;
 
-      // Техники могут управлять заявками, назначенными им
       if (this.isTechnician && this.request.assignedToId === this.currentUser.id) return true;
 
-      // Обычные пользователи могут управлять своими заявками, но только если они не назначены технику
       if (this.request.createdById === this.currentUser.id && !this.request.assignedToId) return true;
 
       return false;
     },
-    // Возможность изменения статуса
     canChangeStatus() {
       if (!this.request) return false;
 
-      // Нельзя менять статус у завершенных и отмененных заявок
       const isTerminalStatus =
         this.request.status?.name === 'Выполнена' ||
         this.request.status?.name === 'Отменена';
 
       return this.canManageRequest && !isTerminalStatus;
     },
-    // Возможность завершения заявки
     canComplete() {
       if (!this.request) return false;
 
-      // Завершить можно только заявки в работе или ожидании
       const canBeCompleted =
         this.request.status?.name === 'В работе' ||
         this.request.status?.name === 'Ожидает';
 
       return this.canManageRequest && canBeCompleted;
     },
-    // Возможность отмены заявки
     canCancel() {
       if (!this.request) return false;
 
-      // Нельзя отменить уже завершенные или отмененные заявки
       const isTerminalStatus =
         this.request.status?.name === 'Выполнена' ||
         this.request.status?.name === 'Отменена';
 
       return this.canManageRequest && !isTerminalStatus;
     },
-    // Возможность добавления комментария
     canAddComment() {
       if (!this.request || !this.currentUser) return false;
 
-      // К завершенным и отмененным заявкам нельзя добавлять комментарии
       const isTerminalStatus =
         this.request.status?.name === 'Выполнена' ||
         this.request.status?.name === 'Отменена';
 
-      // Создатель заявки, назначенный техник и администраторы могут комментировать
       const canComment =
         this.isAdmin ||
         this.request.createdById === this.currentUser.id ||
@@ -435,7 +416,6 @@ export default {
     this.fetchActivities();
   },
   methods: {
-    // Получение данных заявки
     async fetchRequest() {
       this.loading = true;
       try {
@@ -447,7 +427,6 @@ export default {
       }
     },
 
-    // Получение истории активностей
     async fetchActivities() {
       try {
         const response = await this.$store.dispatch('requests/fetchRequestActivities', this.requestId);
@@ -457,7 +436,6 @@ export default {
       }
     },
 
-    // Диалоги для работы с заявкой
     openStatusDialog() {
       this.statusDialog = true;
     },
@@ -482,7 +460,6 @@ export default {
       this.cancelDialog = true;
     },
 
-    // Действия с заявкой
     async addComment() {
       if (!this.commentText) return;
 
@@ -494,7 +471,7 @@ export default {
         });
 
         this.commentText = '';
-        this.fetchActivities(); // Обновляем историю после добавления комментария
+        this.fetchActivities();
         this.$store.commit('notification/SHOW_SUCCESS', 'Комментарий добавлен');
       } catch (error) {
         this.$store.commit('notification/SHOW_ERROR', 'Ошибка при добавлении комментария');
@@ -545,7 +522,6 @@ export default {
       }
     },
 
-    // Вспомогательные методы
     formatDateTime(dateString) {
       if (!dateString) return '-';
       const date = new Date(dateString);
@@ -576,7 +552,6 @@ export default {
     getRequestTypeIcon(type) {
       if (!type) return 'mdi-help-circle';
 
-      // Определение иконки в зависимости от типа заявки
       const typeName = type.name.toLowerCase();
       if (typeName.includes('ремонт')) return 'mdi-tools';
       if (typeName.includes('заправка') || typeName.includes('картридж')) return 'mdi-printer';

@@ -15,18 +15,13 @@ export class RequestActivityService {
     private usersService: UsersService,
   ) {}
 
-  /**
-   * Get all activities for a request
-   */
   async findAllForRequest(requestId: string): Promise<RequestActivity[]> {
-    // First check if the request exists
     const request = await this.requestRepository.findOne({ where: { id: requestId } });
 
     if (!request) {
       throw new NotFoundException(`Request with ID ${requestId} not found`);
     }
 
-    // Get all activities for the request, ordered by timestamp
     return this.requestActivityRepository.find({
       where: { requestId },
       relations: ['user'],
@@ -34,9 +29,6 @@ export class RequestActivityService {
     });
   }
 
-  /**
-   * Log an activity
-   */
   async logActivity(
     requestId: string,
     userId: string,
@@ -45,17 +37,14 @@ export class RequestActivityService {
     oldValue?: string,
     newValue?: string,
   ): Promise<RequestActivity> {
-    // Check if request exists
     const request = await this.requestRepository.findOne({ where: { id: requestId } });
 
     if (!request) {
       throw new NotFoundException(`Request with ID ${requestId} not found`);
     }
 
-    // Check if user exists
     await this.usersService.findOne(userId);
 
-    // Create activity
     const activity = this.requestActivityRepository.create({
       requestId,
       userId,
@@ -69,9 +58,6 @@ export class RequestActivityService {
     return this.requestActivityRepository.save(activity);
   }
 
-  /**
-   * Get activity by ID
-   */
   async findOne(id: string): Promise<RequestActivity> {
     const activity = await this.requestActivityRepository.findOne({
       where: { id },
@@ -85,9 +71,6 @@ export class RequestActivityService {
     return activity;
   }
 
-  /**
-   * Get recent activities across all requests
-   */
   async getRecentActivities(limit: number = 10): Promise<RequestActivity[]> {
     return this.requestActivityRepository.find({
       relations: ['user', 'request'],
@@ -96,9 +79,6 @@ export class RequestActivityService {
     });
   }
 
-  /**
-   * Get activities by type
-   */
   async getActivitiesByType(type: ActivityType, limit: number = 10): Promise<RequestActivity[]> {
     return this.requestActivityRepository.find({
       where: { type },
@@ -108,11 +88,7 @@ export class RequestActivityService {
     });
   }
 
-  /**
-   * Get activities by user
-   */
   async getActivitiesByUser(userId: string, limit: number = 10): Promise<RequestActivity[]> {
-    // Check if user exists
     await this.usersService.findOne(userId);
 
     return this.requestActivityRepository.find({
@@ -123,9 +99,6 @@ export class RequestActivityService {
     });
   }
 
-  /**
-   * Search activities
-   */
   async searchActivities(
     searchTerm: string,
     page: number = 1,
@@ -133,23 +106,19 @@ export class RequestActivityService {
   ): Promise<{ data: RequestActivity[]; total: number; page: number; limit: number }> {
     const queryBuilder = this.requestActivityRepository.createQueryBuilder('activity');
 
-    // Search in message
     if (searchTerm) {
       queryBuilder.where('activity.message ILIKE :search', { search: `%${searchTerm}%` });
     }
 
-    // Add relations
     queryBuilder.leftJoinAndSelect('activity.user', 'user');
     queryBuilder.leftJoinAndSelect('activity.request', 'request');
 
-    // Add ordering
+    // queryBuilder.where('activity.timestamp', 'DESC);
     queryBuilder.orderBy('activity.timestamp', 'DESC');
 
-    // Add pagination
     const skip = (page - 1) * limit;
     queryBuilder.skip(skip).take(limit);
 
-    // Execute the query
     const [activities, total] = await queryBuilder.getManyAndCount();
 
     return {
