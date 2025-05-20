@@ -1,15 +1,21 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
+import { join } from 'path';
 import { Logger, ValidationPipe } from '@nestjs/common';
+
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
+  const logger = new Logger('Bootstrap');
 
   const port = configService.get<number>('PORT') || 3000;
   const apiPrefix = configService.get<string>('API_PREFIX') || 'api';
   const environment = configService.get<string>('NODE_ENV') || 'development';
+
+  const uploadDir = process.env.UPLOAD_DIR || 'uploads';
+  logger.log(`Serving static files from: ${uploadDir}`);
 
   app.useGlobalPipes(
     new ValidationPipe({

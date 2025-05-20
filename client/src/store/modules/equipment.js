@@ -152,7 +152,6 @@ const actions = {
     }
   },
 
-  // Загрузка изображения для оборудования
   async uploadEquipmentImage({ commit }, { id, imageFile }) {
     commit('SET_LOADING', true);
 

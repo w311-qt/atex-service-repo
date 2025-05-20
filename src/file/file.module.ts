@@ -19,13 +19,11 @@ import { v4 as uuidv4 } from 'uuid';
             cb(null, uploadDir);
           },
           filename: (req, file, cb) => {
-            // Generate a unique filename with original extension
             const uniqueSuffix = `${uuidv4()}${extname(file.originalname)}`;
             cb(null, uniqueSuffix);
           },
         }),
         fileFilter: (req, file, cb) => {
-          // Check if the file is an image
           if (!file.mimetype.match(/\/(jpg|jpeg|png|gif)$/)) {
             return cb(new Error('Only image files are allowed!'), false);
           }
