@@ -317,13 +317,13 @@
 <script>
 import { mapGetters } from 'vuex';
 import RequestStatusDialog from '@/components/requests/RequestStatusDialog.vue';
-import AssignRequestDialog from '@/components/requests/AssignRequestDialog.vue';
+import AssignRequestsDialog from '@/components/requests/AssignRequestsDialog.vue';
 
 export default {
   name: 'RequestDetails',
   components: {
     RequestStatusDialog,
-    AssignRequestDialog
+    AssignRequestDialog: AssignRequestsDialog
   },
   props: {
     id: {

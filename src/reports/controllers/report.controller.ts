@@ -1,56 +1,58 @@
-import { Controller, Get, Post, Body, UseGuards, Res, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  Res,
+  UseGuards,
+  ValidationPipe,
+  Body,
+  Post,
+  Headers
+} from '@nestjs/common';
 import { Response } from 'express';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { UserRole } from '../../users/entities/user.entity';
-import { ReportService } from '../services/report.service';
+import { ReportsService } from '../services/report.service';
 
 @Controller('reports')
 @UseGuards(JwtAuthGuard, RolesGuard)
-export class ReportController {
-  constructor(private readonly reportService: ReportService) {}
+export class ReportsController {
+  constructor(private readonly reportsService: ReportsService) {}
 
-  @Get('equipment')
+  @Post('equipment/export')
   @Roles(UserRole.ADMIN, UserRole.TECHNICIAN)
-  async getEquipmentReport(@Query() params: any) {
-    return this.reportService.generateEquipmentReport(params);
-  }
-
-  @Get('requests')
-  @Roles(UserRole.ADMIN, UserRole.TECHNICIAN)
-  async getRequestReport(@Query() params: any) {
-    return this.reportService.generateRequestReport(params);
-  }
-
-  @Post('export/equipment')
-  @Roles(UserRole.ADMIN, UserRole.TECHNICIAN)
-  async exportEquipmentReport(@Body() params: any, @Res() res: Response) {
-    const buffer = await this.reportService.exportEquipmentReport(params);
+  async exportEquipmentReport(
+    @Body() params: any,
+    @Res() res: Response,
+    @Headers('user-agent') userAgent: string,
+  ) {
+    const buffer = await this.reportsService.generateEquipmentReport(params);
 
     const filename = `equipment_report_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-    res.set({
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="${filename}"`,
-      'Content-Length': buffer.length,
-    });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+    res.setHeader('Content-Length', buffer.length);
 
     res.end(buffer);
   }
 
-  @Post('export/requests')
+  @Post('requests/export')
   @Roles(UserRole.ADMIN, UserRole.TECHNICIAN)
-  async exportRequestReport(@Body() params: any, @Res() res: Response) {
-    const buffer = await this.reportService.exportRequestReport(params);
+  async exportRequestsReport(
+    @Body() params: any,
+    @Res() res: Response,
+    @Headers('user-agent') userAgent: string,
+  ) {
+    const buffer = await this.reportsService.generateRequestsReport(params);
 
-    const filename = `request_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const filename = `requests_report_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-    res.set({
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="${filename}"`,
-      'Content-Length': buffer.length,
-    });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+    res.setHeader('Content-Length', buffer.length);
 
     res.end(buffer);
   }

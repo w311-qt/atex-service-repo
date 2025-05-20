@@ -12,38 +12,34 @@ import { RolesGuard } from './auth/guards/roles.guard';
 import { EquipmentModule } from './equipment/equipment.module';
 import { FileModule } from './file/file.module';
 import { RequestsModule } from './requests/request.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
-    // Load environment variables
     ConfigModule.forRoot({
       isGlobal: true,
     }),
 
-    // Database connection
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: getDatabaseConfig,
     }),
 
-    // Application modules
     UsersModule,
     AuthModule,
     EquipmentModule,
     FileModule,
     RequestsModule,
-    // Add other modules here as they are developed
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
-    // Global JWT guard - will be applied to all endpoints unless marked with @Public()
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
-    // Global roles guard - will check roles for endpoints decorated with @Roles()
     {
       provide: APP_GUARD,
       useClass: RolesGuard,

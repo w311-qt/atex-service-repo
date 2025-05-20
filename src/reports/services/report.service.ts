@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, In } from 'typeorm';
+import * as ExcelJS from 'exceljs';
 import { Equipment } from '../../equipment/entities/equipment.entity';
 import { Category } from '../../equipment/entities/category.entity';
 import { Status } from '../../equipment/entities/status.entity';
+import { User } from '../../users/entities/user.entity';
 import { Request } from '../../requests/entities/request.entity';
 import { RequestStatus } from '../../requests/entities/request-status.entity';
 import { RequestType } from '../../requests/entities/request-type.entity';
 import { RequestPriority } from '../../requests/entities/request-priority.entity';
-import { User } from '../../users/entities/user.entity';
-import { ExcelService } from './excel.service';
 
 @Injectable()
-export class ReportService {
+export class ReportsService {
   constructor(
     @InjectRepository(Equipment)
     private equipmentRepository: Repository<Equipment>,
@@ -20,6 +20,8 @@ export class ReportService {
     private categoryRepository: Repository<Category>,
     @InjectRepository(Status)
     private statusRepository: Repository<Status>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     @InjectRepository(Request)
     private requestRepository: Repository<Request>,
     @InjectRepository(RequestStatus)
@@ -28,512 +30,229 @@ export class ReportService {
     private requestTypeRepository: Repository<RequestType>,
     @InjectRepository(RequestPriority)
     private requestPriorityRepository: Repository<RequestPriority>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-    private excelService: ExcelService,
   ) {}
 
-  /**
-   * Generate equipment report
-   */
-  async generateEquipmentReport(params: any) {
-    const queryBuilder = this.equipmentRepository.createQueryBuilder('equipment')
-      .leftJoinAndSelect('equipment.category', 'category')
-      .leftJoinAndSelect('equipment.status', 'status')
-      .leftJoinAndSelect('equipment.assignedTo', 'assignedTo');
+  async generateEquipmentReport(params: any): Promise<Buffer> {
+    const {
+      categoryIds,
+      statusIds,
+      dateFrom,
+      dateTo,
+    } = params;
 
-    // Apply filters if provided
-    if (params.categoryIds && params.categoryIds.length > 0) {
-      queryBuilder.andWhere('equipment.categoryId IN (:...categoryIds)', {
-        categoryIds: params.categoryIds,
-      });
-    }
-
-    if (params.statusIds && params.statusIds.length > 0) {
-      queryBuilder.andWhere('equipment.statusId IN (:...statusIds)', {
-        statusIds: params.statusIds,
-      });
-    }
-
-    if (params.dateFrom) {
-      queryBuilder.andWhere('equipment.purchaseDate >= :dateFrom', {
-        dateFrom: params.dateFrom,
-      });
-    }
-
-    if (params.dateTo) {
-      queryBuilder.andWhere('equipment.purchaseDate <= :dateTo', {
-        dateTo: params.dateTo,
-      });
-    }
-
-    const equipment = await queryBuilder.getMany();
-    const total = equipment.length;
-
-    // Group equipment by category
-    const byCategory = await this.getEquipmentByCategory(equipment);
-
-    // Group equipment by status
-    const byStatus = await this.getEquipmentByStatus(equipment);
-
-    // Group equipment by age
-    const byAge = this.getEquipmentByAge(equipment);
-
-    return {
-      total,
-      byCategory,
-      byStatus,
-      byAge,
-      generatedAt: new Date()
+    const query: any = {
+      relations: ['category', 'status', 'assignedTo'],
+      order: { name: 'ASC' },
     };
-  }
 
-  /**
-   * Generate request report
-   */
-  async generateRequestReport(params: any) {
-    const queryBuilder = this.requestRepository.createQueryBuilder('request')
-      .leftJoinAndSelect('request.type', 'type')
-      .leftJoinAndSelect('request.status', 'status')
-      .leftJoinAndSelect('request.priority', 'priority')
-      .leftJoinAndSelect('request.assignedTo', 'assignedTo')
-      .leftJoinAndSelect('request.createdBy', 'createdBy')
-      .leftJoinAndSelect('request.equipment', 'equipment');
-
-    // Apply filters if provided
-    if (params.statusIds && params.statusIds.length > 0) {
-      queryBuilder.andWhere('request.statusId IN (:...statusIds)', {
-        statusIds: params.statusIds,
-      });
+    if (categoryIds && categoryIds.length > 0) {
+      query.where = { ...query.where, categoryId: In(categoryIds) };
     }
 
-    if (params.typeIds && params.typeIds.length > 0) {
-      queryBuilder.andWhere('request.typeId IN (:...typeIds)', {
-        typeIds: params.typeIds,
-      });
+    if (statusIds && statusIds.length > 0) {
+      query.where = { ...query.where, statusId: In(statusIds) };
     }
 
-    if (params.assignedToIds && params.assignedToIds.length > 0) {
-      queryBuilder.andWhere('request.assignedToId IN (:...assignedToIds)', {
-        assignedToIds: params.assignedToIds,
-      });
+    if (dateFrom || dateTo) {
+      query.where = {
+        ...query.where,
+        purchaseDate: Between(
+          dateFrom ? new Date(dateFrom) : new Date('1900-01-01'),
+          dateTo ? new Date(dateTo) : new Date()
+        )
+      };
     }
 
-    if (params.dateFrom) {
-      queryBuilder.andWhere('request.createdAt >= :dateFrom', {
-        dateFrom: params.dateFrom,
-      });
-    }
+    const equipment = await this.equipmentRepository.find(query);
 
-    if (params.dateTo) {
-      queryBuilder.andWhere('request.createdAt <= :dateTo', {
-        dateTo: params.dateTo,
-      });
-    }
+    // Create Excel workbook and worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Оборудование');
 
-    const requests = await queryBuilder.getMany();
-    const total = requests.length;
-
-    // Group requests by status
-    const byStatus = await this.getRequestsByStatus(requests);
-
-    // Group requests by type
-    const byType = await this.getRequestsByType(requests);
-
-    // Group requests by technician
-    const byTechnician = await this.getRequestsByTechnician(requests);
-
-    // Calculate resolution time by type
-    const resolutionTime = await this.getResolutionTimeByType(requests);
-
-    // Calculate average resolution time
-    const averageResolutionTime = this.calculateAverageResolutionTime(requests);
-
-    // Get monthly trend
-    const trend = await this.getRequestMonthlyTrend();
-
-    return {
-      total,
-      byStatus,
-      byType,
-      byTechnician,
-      resolutionTime,
-      averageResolutionTime,
-      trend,
-      generatedAt: new Date()
-    };
-  }
-
-  /**
-   * Export equipment report to Excel
-   */
-  async exportEquipmentReport(params: any) {
-    const report = await this.generateEquipmentReport(params);
-
-    // Create workbook structure for equipment report
-    const worksheets = [
-      {
-        name: 'Summary',
-        data: [
-          ['Equipment Report', null],
-          ['Generated at', report.generatedAt.toLocaleString()],
-          ['Total equipment', report.total],
-          [null, null],
-          ['By Category', null],
-          ['Category', 'Count', '% of Total'],
-          ...report.byCategory.map(item => [
-            item.category,
-            item.count,
-            `${((item.count / report.total) * 100).toFixed(2)}%`
-          ]),
-          [null, null],
-          ['By Status', null],
-          ['Status', 'Count', '% of Total'],
-          ...report.byStatus.map(item => [
-            item.status,
-            item.count,
-            `${((item.count / report.total) * 100).toFixed(2)}%`
-          ]),
-          [null, null],
-          ['By Age', null],
-          ['Age Group', 'Count', '% of Total'],
-          ...report.byAge.map(item => [
-            item.ageGroup,
-            item.count,
-            `${((item.count / report.total) * 100).toFixed(2)}%`
-          ])
-        ]
-      }
+    // Define columns
+    worksheet.columns = [
+      { header: 'Наименование', key: 'name', width: 30 },
+      { header: 'Инв. номер', key: 'inventoryNumber', width: 15 },
+      { header: 'Модель', key: 'model', width: 20 },
+      { header: 'Категория', key: 'category', width: 20 },
+      { header: 'Статус', key: 'status', width: 15 },
+      { header: 'Местоположение', key: 'location', width: 25 },
+      { header: 'Дата поступления', key: 'purchaseDate', width: 20 },
+      { header: 'Ответственный', key: 'assignedTo', width: 25 },
     ];
 
-    return this.excelService.generateExcel(worksheets);
+    // Style header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    // Add data rows
+    equipment.forEach(item => {
+      worksheet.addRow({
+        name: item.name,
+        inventoryNumber: item.inventoryNumber,
+        model: item.model,
+        category: item.category ? item.category.name : '',
+        status: item.status ? item.status.name : '',
+        location: item.location,
+        purchaseDate: item.purchaseDate
+          ? new Date(item.purchaseDate).toLocaleDateString('ru-RU')
+          : '',
+        assignedTo: item.assignedTo ? item.assignedTo.name : '',
+      });
+    });
+
+    // Add summary row
+    worksheet.addRow({});
+    const totalRow = worksheet.addRow({
+      name: `Всего: ${equipment.length} ед.`,
+    });
+    totalRow.font = { bold: true };
+
+    // Generate buffer
+    const buffer = await workbook.xlsx.writeBuffer() as Buffer;
+    return buffer;
   }
 
-  /**
-   * Export request report to Excel
-   */
-  async exportRequestReport(params: any) {
-    const report = await this.generateRequestReport(params);
+  async generateRequestsReport(params: any): Promise<Buffer> {
+    const {
+      statusIds,
+      typeIds,
+      assignedToIds,
+      dateFrom,
+      dateTo,
+    } = params;
 
-    // Create workbook structure for request report
-    const worksheets = [
-      {
-        name: 'Summary',
-        data: [
-          ['Request Report', null],
-          ['Generated at', report.generatedAt.toLocaleString()],
-          ['Total requests', report.total],
-          [null, null],
-          ['By Status', null],
-          ['Status', 'Count', '% of Total'],
-          ...report.byStatus.map(item => [
-            item.status,
-            item.count,
-            `${((item.count / report.total) * 100).toFixed(2)}%`
-          ]),
-          [null, null],
-          ['By Type', null],
-          ['Type', 'Count', '% of Total'],
-          ...report.byType.map(item => [
-            item.type,
-            item.count,
-            `${((item.count / report.total) * 100).toFixed(2)}%`
-          ]),
-          [null, null],
-          ['By Technician', null],
-          ['Technician', 'Completed', 'In Progress', 'Total'],
-          ...report.byTechnician.map(item => [
-            item.technician,
-            item.completed,
-            item.inProgress,
-            item.total
-          ]),
-          [null, null],
-          ['Resolution Time (hours)', null],
-          ['Type', 'Average Hours'],
-          ...report.resolutionTime.map(item => [
-            item.type,
-            item.hours
-          ]),
-          ['Average overall', report.averageResolutionTime]
-        ]
-      },
-      {
-        name: 'Monthly Trend',
-        data: [
-          ['Month', 'Count'],
-          ...report.trend.map(item => [
-            item.month,
-            item.count
-          ])
-        ]
-      }
+    const query: any = {
+      relations: ['type', 'status', 'priority', 'createdBy', 'assignedTo', 'equipment'],
+      order: { createdAt: 'DESC' },
+    };
+
+    if (statusIds && statusIds.length > 0) {
+      query.where = { ...query.where, statusId: In(statusIds) };
+    }
+
+    if (typeIds && typeIds.length > 0) {
+      query.where = { ...query.where, typeId: In(typeIds) };
+    }
+
+    if (assignedToIds && assignedToIds.length > 0) {
+      query.where = { ...query.where, assignedToId: In(assignedToIds) };
+    }
+
+    if (dateFrom || dateTo) {
+      query.where = {
+        ...query.where,
+        createdAt: Between(
+          dateFrom ? new Date(dateFrom) : new Date('1900-01-01'),
+          dateTo ? new Date(dateTo) : new Date()
+        )
+      };
+    }
+
+    const requests = await this.requestRepository.find(query);
+
+    // Create Excel workbook and worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Заявки');
+
+    // Define columns
+    worksheet.columns = [
+      { header: '№ заявки', key: 'number', width: 15 },
+      { header: 'Тема', key: 'title', width: 30 },
+      { header: 'Тип', key: 'type', width: 20 },
+      { header: 'Статус', key: 'status', width: 15 },
+      { header: 'Приоритет', key: 'priority', width: 15 },
+      { header: 'Создана', key: 'createdAt', width: 20 },
+      { header: 'Завершена', key: 'completedAt', width: 20 },
+      { header: 'Создал', key: 'createdBy', width: 25 },
+      { header: 'Исполнитель', key: 'assignedTo', width: 25 },
+      { header: 'Оборудование', key: 'equipment', width: 30 },
+      { header: 'Местоположение', key: 'location', width: 25 },
     ];
 
-    return this.excelService.generateExcel(worksheets);
-  }
+    // Style header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
 
-  /**
-   * Group equipment by category
-   */
-  private async getEquipmentByCategory(equipment: Equipment[]) {
-    // Get all categories (including those with no equipment)
-    const categories = await this.categoryRepository.find();
-
-    // Create a map for counting equipment by category
-    const categoryMap = new Map<string, number>();
-    categories.forEach(category => categoryMap.set(category.name, 0));
-
-    // Count equipment by category
-    equipment.forEach(item => {
-      const categoryName = item.category?.name || 'Uncategorized';
-      categoryMap.set(categoryName, (categoryMap.get(categoryName) || 0) + 1);
-    });
-
-    // Convert map to array of objects
-    return Array.from(categoryMap.entries())
-      .filter(([_, count]) => count > 0)
-      .map(([category, count]) => ({ category, count }))
-      .sort((a, b) => b.count - a.count);
-  }
-
-  /**
-   * Group equipment by status
-   */
-  private async getEquipmentByStatus(equipment: Equipment[]) {
-    // Get all statuses (including those with no equipment)
-    const statuses = await this.statusRepository.find();
-
-    // Create a map for counting equipment by status
-    const statusMap = new Map<string, number>();
-    statuses.forEach(status => statusMap.set(status.name, 0));
-
-    // Count equipment by status
-    equipment.forEach(item => {
-      const statusName = item.status?.name || 'Unknown';
-      statusMap.set(statusName, (statusMap.get(statusName) || 0) + 1);
-    });
-
-    // Convert map to array of objects
-    return Array.from(statusMap.entries())
-      .filter(([_, count]) => count > 0)
-      .map(([status, count]) => ({ status, count }))
-      .sort((a, b) => b.count - a.count);
-  }
-
-  /**
-   * Group equipment by age
-   */
-  private getEquipmentByAge(equipment: Equipment[]) {
-    const now = new Date();
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(now.getFullYear() - 1);
-
-    const threeYearsAgo = new Date();
-    threeYearsAgo.setFullYear(now.getFullYear() - 3);
-
-    const lessThanOneYear = equipment.filter(item => {
-      return item.purchaseDate && new Date(item.purchaseDate) > oneYearAgo;
-    }).length;
-
-    const oneToThreeYears = equipment.filter(item => {
-      return item.purchaseDate &&
-        new Date(item.purchaseDate) <= oneYearAgo &&
-        new Date(item.purchaseDate) > threeYearsAgo;
-    }).length;
-
-    const moreThanThreeYears = equipment.filter(item => {
-      return item.purchaseDate && new Date(item.purchaseDate) <= threeYearsAgo;
-    }).length;
-
-    const noDate = equipment.filter(item => !item.purchaseDate).length;
-
-    return [
-      { ageGroup: 'Less than 1 year', count: lessThanOneYear },
-      { ageGroup: '1-3 years', count: oneToThreeYears },
-      { ageGroup: 'More than 3 years', count: moreThanThreeYears },
-      { ageGroup: 'No purchase date', count: noDate }
-    ].filter(item => item.count > 0);
-  }
-
-  /**
-   * Group requests by status
-   */
-  private async getRequestsByStatus(requests: Request[]) {
-    // Get all statuses (including those with no requests)
-    const statuses = await this.requestStatusRepository.find();
-
-    // Create a map for counting requests by status
-    const statusMap = new Map<string, number>();
-    statuses.forEach(status => statusMap.set(status.name, 0));
-
-    // Count requests by status
+    // Add data rows
     requests.forEach(item => {
-      const statusName = item.status?.name || 'Unknown';
-      statusMap.set(statusName, (statusMap.get(statusName) || 0) + 1);
+      worksheet.addRow({
+        number: item.number,
+        title: item.title,
+        type: item.type ? item.type.name : '',
+        status: item.status ? item.status.name : '',
+        priority: item.priority ? item.priority.name : '',
+        createdAt: item.createdAt
+          ? new Date(item.createdAt).toLocaleDateString('ru-RU')
+          : '',
+        completedAt: item.completedAt
+          ? new Date(item.completedAt).toLocaleDateString('ru-RU')
+          : '',
+        createdBy: item.createdBy ? item.createdBy.name : '',
+        assignedTo: item.assignedTo ? item.assignedTo.name : '',
+        equipment: item.equipment ? item.equipment.name : '',
+        location: item.location,
+      });
     });
 
-    // Convert map to array of objects
-    return Array.from(statusMap.entries())
-      .filter(([_, count]) => count > 0)
-      .map(([status, count]) => ({ status, count }))
-      .sort((a, b) => b.count - a.count);
-  }
+    // Add summary row
+    worksheet.addRow({});
+    const totalRow = worksheet.addRow({
+      number: `Всего: ${requests.length} заявок`,
+    });
+    totalRow.font = { bold: true };
 
-  /**
-   * Group requests by type
-   */
-  private async getRequestsByType(requests: Request[]) {
-    // Get all types (including those with no requests)
-    const types = await this.requestTypeRepository.find();
+    // Add statistics worksheet
+    const statsWorksheet = workbook.addWorksheet('Статистика');
 
-    // Create a map for counting requests by type
-    const typeMap = new Map<string, number>();
-    types.forEach(type => typeMap.set(type.name, 0));
+    // Status statistics
+    statsWorksheet.addRow(['Статистика по статусам']);
+    statsWorksheet.addRow(['Статус', 'Количество', 'Процент']);
 
-    // Count requests by type
-    requests.forEach(item => {
-      const typeName = item.type?.name || 'Unknown';
-      typeMap.set(typeName, (typeMap.get(typeName) || 0) + 1);
+    // Fix the typing issue with object indexing
+    const statusStats: Record<string, number> = {};
+    requests.forEach(request => {
+      const statusName = request.status ? request.status.name : 'Не указан';
+      statusStats[statusName] = (statusStats[statusName] || 0) + 1;
     });
 
-    // Convert map to array of objects
-    return Array.from(typeMap.entries())
-      .filter(([_, count]) => count > 0)
-      .map(([type, count]) => ({ type, count }))
-      .sort((a, b) => b.count - a.count);
-  }
-
-  /**
-   * Group requests by technician
-   */
-  private async getRequestsByTechnician(requests: Request[]) {
-    // Get technicians who have been assigned requests
-    const technicianIds = [...new Set(requests
-      .filter(req => req.assignedToId)
-      .map(req => req.assignedToId))];
-
-    const technicians = await this.userRepository.findBy({
-      id: In(technicianIds),
+    Object.entries(statusStats).forEach(([status, count]) => {
+      const percent = (count / requests.length * 100).toFixed(1);
+      statsWorksheet.addRow([status, count, `${percent}%`]);
     });
 
-    // Create result structure
-    const result = [];
+    // Type statistics
+    statsWorksheet.addRow([]);
+    statsWorksheet.addRow(['Статистика по типам']);
+    statsWorksheet.addRow(['Тип', 'Количество', 'Процент']);
 
-    for (const technician of technicians) {
-      const technicianRequests = requests.filter(req => req.assignedToId === technician.id);
-      const completed = technicianRequests.filter(req => req.status?.name === 'Выполнена').length;
-      const inProgress = technicianRequests.filter(req => req.status?.name !== 'Выполнена' && req.status?.name !== 'Отменена').length;
+    // Fix the typing issue with object indexing
+    const typeStats: Record<string, number> = {};
+    requests.forEach(request => {
+      const typeName = request.type ? request.type.name : 'Не указан';
+      typeStats[typeName] = (typeStats[typeName] || 0) + 1;
+    });
 
-      result.push({
-        technician: technician.name,
-        completed,
-        inProgress,
-        total: technicianRequests.length
-      });
-    }
+    Object.entries(typeStats).forEach(([type, count]) => {
+      const percent = (count / requests.length * 100).toFixed(1);
+      statsWorksheet.addRow([type, count, `${percent}%`]);
+    });
 
-    return result.sort((a, b) => b.total - a.total);
-  }
+    // Format statistics worksheet
+    statsWorksheet.getColumn(1).width = 25;
+    statsWorksheet.getColumn(2).width = 15;
+    statsWorksheet.getColumn(3).width = 15;
 
-  /**
-   * Calculate resolution time by request type
-   */
-  private async getResolutionTimeByType(requests: Request[]) {
-    // Filter completed requests
-    const completedRequests = requests.filter(req => req.completedAt);
-
-    // Group by type
-    const types = await this.requestTypeRepository.find();
-    const result = [];
-
-    for (const type of types) {
-      const typeRequests = completedRequests.filter(req => req.typeId === type.id);
-
-      if (typeRequests.length === 0) continue;
-
-      // Calculate average resolution time in hours
-      let totalHours = 0;
-
-      for (const req of typeRequests) {
-        const created = new Date(req.createdAt);
-        const completed = new Date(req.completedAt);
-        const hours = (completed.getTime() - created.getTime()) / (1000 * 60 * 60);
-        totalHours += hours;
-      }
-
-      const averageHours = totalHours / typeRequests.length;
-
-      result.push({
-        type: type.name,
-        hours: parseFloat(averageHours.toFixed(2)),
-        count: typeRequests.length
-      });
-    }
-
-    return result.sort((a, b) => a.hours - b.hours);
-  }
-
-  /**
-   * Calculate average resolution time for all requests
-   */
-  private calculateAverageResolutionTime(requests: Request[]) {
-    // Filter completed requests
-    const completedRequests = requests.filter(req => req.completedAt);
-
-    if (completedRequests.length === 0) {
-      return 0;
-    }
-
-    // Calculate total hours
-    let totalHours = 0;
-
-    for (const req of completedRequests) {
-      const created = new Date(req.createdAt);
-      const completed = new Date(req.completedAt);
-      const hours = (completed.getTime() - created.getTime()) / (1000 * 60 * 60);
-      totalHours += hours;
-    }
-
-    return parseFloat((totalHours / completedRequests.length).toFixed(2));
-  }
-
-  /**
-   * Get monthly trend of requests
-   */
-  private async getRequestMonthlyTrend() {
-    // Get last 12 months
-    const now = new Date();
-    const months = [];
-
-    for (let i = 11; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const year = date.getFullYear();
-      const month = date.getMonth() + 1;
-      const monthStr = year + '-' + month.toString().padStart(2, '0');
-      months.push({
-        month: monthStr,
-        start: new Date(year, month - 1, 1),
-        end: new Date(year, month, 0)
-      });
-    }
-
-    // Get counts for each month
-    const result = [];
-
-    for (const month of months) {
-      const count = await this.requestRepository.count({
-        where: {
-          createdAt: Between(month.start, month.end)
-        }
-      });
-
-      result.push({
-        month: month.month,
-        count
-      });
-    }
-
-    return result;
+    // Generate buffer and fix the Buffer type issue
+    const buffer = await workbook.xlsx.writeBuffer() as Buffer;
+    return buffer;
   }
 }

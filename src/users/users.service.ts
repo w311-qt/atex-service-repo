@@ -58,33 +58,37 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    // Check if user with this email already exists
-    const existingUser = await this.findOneByEmail(createUserDto.email);
-    if (existingUser) {
-      throw new ConflictException('Email already in use');
+    try {
+      const existingUser = await this.findOneByEmail(createUserDto.email);
+      if (existingUser) {
+        throw new ConflictException('Email already in use');
+      }
+
+      const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+
+      const newUser = this.usersRepository.create({
+        ...createUserDto,
+        password: hashedPassword,
+      });
+
+      const savedUser = await this.usersRepository.save(newUser);
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...result } = savedUser;
+      return result as User;
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error; // Пробрасываем ошибку конфликта
+      }
+      console.error('Error creating user:', error);
+      throw error;
     }
-
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-
-    // Create new user with hashed password
-    const newUser = this.usersRepository.create({
-      ...createUserDto,
-      password: hashedPassword,
-    });
-
-    const savedUser = await this.usersRepository.save(newUser);
-
-    // Don't return the password
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...result } = savedUser;
-    return result as User;
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.findOne(id);
 
-    // If updating email, check if it's already taken
+    // Если обновляем email, проверим, не занят ли он
     if (updateUserDto.email && updateUserDto.email !== user.email) {
       const existingUser = await this.findOneByEmail(updateUserDto.email);
       if (existingUser) {
@@ -92,7 +96,6 @@ export class UsersService {
       }
     }
 
-    // If updating password, hash it
     if (updateUserDto.password) {
       updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
     }

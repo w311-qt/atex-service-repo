@@ -7,19 +7,6 @@
         <span class="font-weight-light"></span>
       </v-toolbar-title>
       <v-spacer></v-spacer>
-
-      <v-text-field
-        v-if="isLoggedIn"
-        class="mt-7 hidden-sm-and-down"
-        flat
-        hide-details
-        prepend-inner-icon="mdi-magnify"
-        label="Поиск..."
-        solo-inverted
-        rounded
-        dense
-      ></v-text-field>
-
       <v-spacer></v-spacer>
 
       <v-badge
