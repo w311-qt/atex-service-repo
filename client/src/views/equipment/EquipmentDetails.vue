@@ -1,4 +1,3 @@
-<!-- client/src/views/equipment/EquipmentDetails.vue -->
 <template>
   <div>
     <v-skeleton-loader
@@ -7,7 +6,6 @@
     ></v-skeleton-loader>
 
     <div v-else>
-      <!-- Заголовок и кнопки управления -->
       <v-card flat class="mb-4">
         <v-card-title class="d-flex align-center py-2">
           <v-btn
@@ -211,6 +209,13 @@
                     <td>{{ spec.value }}{{ spec.unit ? ' ' + spec.unit : '' }}</td>
                   </tr>
                   </tbody>
+                  <equipment-image-upload-dialog
+                    :dialog="imageUploadDialog"
+                    :equipment-id="equipment.id"
+                    :equipment-name="equipment.name"
+                    @close="imageUploadDialog = false"
+                    @uploaded="onImageUploaded"
+                  ></equipment-image-upload-dialog>
                 </template>
               </v-simple-table>
             </v-card-text>
@@ -299,7 +304,7 @@
             <v-card-text class="d-flex justify-center pa-6">
               <v-img
                 v-if="equipment.image"
-                :src="`/api/files/${equipment.image}`"
+                :src="getImageUrl(equipment.image)"
                 max-height="300"
                 contain
                 class="rounded"
@@ -508,6 +513,7 @@ export default {
       deleteLoading: false,
       assignLoading: false,
       statusLoading: false,
+      imageUploadDialog: false,
       equipment: {
         id: '',
         name: '',
@@ -671,9 +677,25 @@ export default {
     },
 
     uploadImage() {
-      // Здесь будет открытие диалога загрузки изображения
-      // Пока просто заглушка
-      this.$toast.info('Функция загрузки изображения будет доступна в следующей версии');
+      this.imageUploadDialog = true;
+    },
+
+    onImageUploaded(responseData) {
+      if (responseData && (responseData.image || responseData.filename)) {
+        this.equipment.image = responseData.image || responseData.filename;
+      }
+
+      this.fetchEquipmentDetails();
+    },
+
+    getImageUrl(imagePath) {
+      if (!imagePath) return '';
+
+      if (imagePath.startsWith('http')) {
+        return imagePath;
+      }
+
+      return `${process.env.VUE_APP_API_URL || ''}/files/${imagePath}`;
     },
 
     openCreateRequestDialog() {

@@ -212,7 +212,6 @@ export class EquipmentService {
   async uploadImage(id: string, filename: string): Promise<EquipmentResponseDto> {
     const equipment = await this.findOneEntity(id);
 
-    // Если у оборудования уже есть изображение, удаляем его
     if (equipment.image) {
       try {
         await this.fileService.deleteFile(equipment.image);
@@ -220,6 +219,7 @@ export class EquipmentService {
         this.logger.warn(`Failed to delete previous image ${equipment.image}: ${error.message}`);
       }
     }
+
     equipment.image = filename;
     const updatedEquipment = await this.equipmentRepository.save(equipment);
 

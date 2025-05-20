@@ -9,6 +9,15 @@
         <v-container>
           <v-form ref="form" v-model="valid" lazy-validation>
             <v-row>
+              <v-col cols="12">
+                <h3 class="subtitle-1 mb-2">Изображение</h3>
+                <image-upload
+                  v-model="formData.image"
+                  :equipment-id="editMode ? equipment?.id : null"
+                  @uploaded="onImageUploaded"
+                ></image-upload>
+              </v-col>
+
               <v-col cols="12" sm="6">
                 <v-text-field
                   v-model="formData.name"
@@ -60,7 +69,6 @@
                 ></v-text-field>
               </v-col>
               <v-col cols="12" sm="6">
-                <!-- Исправленный датапикер -->
                 <v-menu
                   v-model="dateMenu"
                   :close-on-content-click="false"
@@ -108,7 +116,6 @@
         </v-btn>
       </v-card-actions>
 
-      <!-- Показать ошибку, если есть -->
       <v-snackbar
         v-model="showError"
         color="error"
@@ -131,9 +138,13 @@
 
 <script>
 import { mapGetters } from 'vuex';
+import ImageUpload from '@/components/common/ImageUpload.vue';
 
 export default {
   name: 'EquipmentFormDialog',
+  components: {
+    ImageUpload
+  },
   props: {
     dialog: {
       type: Boolean,
@@ -164,7 +175,8 @@ export default {
         statusId: '',
         location: '',
         purchaseDate: null,
-        description: ''
+        description: '',
+        image: null
       },
       nameRules: [
         v => !!v || 'Наименование обязательно',
@@ -196,12 +208,10 @@ export default {
     displayDate() {
       if (!this.formData.purchaseDate) return '';
 
-      // Форматируем дату для отображения
       try {
         const date = new Date(this.formData.purchaseDate);
         return new Intl.DateTimeFormat('ru-RU').format(date);
       } catch (e) {
-        // Если дата в формате YYYY-MM-DD
         const [year, month, day] = this.formData.purchaseDate.split('-');
         if (year && month && day) {
           return `${day}.${month}.${year}`;
@@ -230,7 +240,8 @@ export default {
             statusId: newVal.statusId || '',
             location: newVal.location || '',
             purchaseDate: newVal.purchaseDate || null,
-            description: newVal.description || ''
+            description: newVal.description || '',
+            image: newVal.image || null
           };
         } else {
           this.resetForm();
@@ -261,21 +272,75 @@ export default {
         statusId: '',
         location: '',
         purchaseDate: null,
-        description: ''
+        description: '',
+        image: null
       };
       if (this.$refs.form) {
         this.$refs.form.resetValidation();
       }
       this.showError = false;
     },
+
+    onImageUploaded(responseData) {
+      if (this.editMode) {
+        this.formData.image = responseData.image || responseData.filename;
+
+        this.$store.commit('notification/SHOW_SUCCESS', 'Изображение успешно загружено');
+      }
+    },
+
     async save() {
       if (this.$refs.form.validate()) {
         this.loading = true;
         try {
+          // Clone the form data to avoid modifying the original
           const equipmentData = { ...this.formData };
 
-          console.log('Debug - form data before sending:', equipmentData);
+          // Handle image differently based on whether we're editing or creating
+          if (this.editMode) {
+            // For edit mode, we don't need to do anything special with the image
+            // since it should already be uploaded via the ImageUpload component
+            if (equipmentData.image instanceof File) {
+              // If for some reason we still have a File object, remove it
+              // as it will cause issues with the API
+              delete equipmentData.image;
+            }
+          } else {
+            // For create mode, we need to remove the image from the payload
+            // if it's a File (we'll upload it after equipment creation)
+            if (equipmentData.image instanceof File) {
+              // Store the file object for later use
+              const imageFile = equipmentData.image;
+              delete equipmentData.image;
 
+              // Create the equipment without the image
+              const createdEquipment = await this.$store.dispatch('equipment/createEquipment', equipmentData);
+
+              // If equipment was created successfully, upload the image
+              if (createdEquipment && createdEquipment.id) {
+                try {
+                  // Upload the image for the newly created equipment
+                  await this.$store.dispatch('equipment/uploadEquipmentImage', {
+                    id: createdEquipment.id,
+                    imageFile: imageFile
+                  });
+
+                  this.$store.commit('notification/SHOW_SUCCESS',
+                    'Оборудование успешно создано и изображение загружено');
+                } catch (imageError) {
+                  console.error('Error uploading image:', imageError);
+                  this.$store.commit('notification/SHOW_WARNING',
+                    'Оборудование создано, но возникла ошибка при загрузке изображения');
+                }
+
+                this.$emit('saved');
+                this.close();
+                return;
+              }
+            }
+          }
+
+          // Make sure we have the required fields
           if (!equipmentData.categoryId) {
             throw new Error('Выберите допустимую категорию');
           }
@@ -284,13 +349,16 @@ export default {
             throw new Error('Выберите допустимый статус');
           }
 
+          // Perform the appropriate action based on mode
           if (this.editMode && this.equipment) {
             await this.$store.dispatch('equipment/updateEquipment', {
               id: this.equipment.id,
               equipmentData
             });
+            this.$store.commit('notification/SHOW_SUCCESS', 'Оборудование успешно обновлено');
           } else {
             await this.$store.dispatch('equipment/createEquipment', equipmentData);
+            this.$store.commit('notification/SHOW_SUCCESS', 'Оборудование успешно создано');
           }
 
           this.$emit('saved');

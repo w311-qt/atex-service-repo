@@ -22,6 +22,9 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { ConfigService } from '@nestjs/config';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
 @Controller('files')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -33,7 +36,20 @@ export class FileController {
 
   @Post('upload')
   @Roles(UserRole.ADMIN, UserRole.TECHNICIAN)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const uniqueSuffix = `${uuidv4()}${extname(file.originalname)}`;
+          cb(null, uniqueSuffix);
+        },
+      }),
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+      },
+    }),
+  )
   async uploadFile(
     @UploadedFile(
       new ParseFilePipeBuilder()
@@ -67,12 +83,10 @@ export class FileController {
 
   @Get(':filename')
   async getFile(@Param('filename') filename: string, @Res() res: Response) {
-    // Check if file exists
     if (!(await this.fileService.fileExists(filename))) {
       throw new NotFoundException(`File ${filename} not found`);
     }
 
-    // Return the file
     return res.sendFile(filename, { root: this.configService.get<string>('UPLOAD_DIR') || './uploads' });
   }
 

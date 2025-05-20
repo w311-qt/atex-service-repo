@@ -11,7 +11,6 @@ export class FileService {
   constructor(private configService: ConfigService) {
     this.uploadDir = this.configService.get<string>('UPLOAD_DIR') || './uploads';
 
-    // Ensure upload directory exists
     if (!fs.existsSync(this.uploadDir)) {
       fs.mkdirSync(this.uploadDir, { recursive: true });
       this.logger.log(`Created upload directory: ${this.uploadDir}`);
@@ -51,12 +50,10 @@ export class FileService {
   async deleteFile(filename: string): Promise<void> {
     const filePath = this.getFilePath(filename);
 
-    // Check if file exists
     if (!(await this.fileExists(filename))) {
       throw new NotFoundException(`File ${filename} not found`);
     }
 
-    // Delete the file
     try {
       await fs.promises.unlink(filePath);
       this.logger.log(`Deleted file: ${filename}`);
