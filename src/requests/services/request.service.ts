@@ -371,9 +371,16 @@ export class RequestService {
   ): Promise<RequestResponseDto> {
     const request = await this.findOneEntity(id, ['status']);
 
-    // Only admins can assign requests
-    if (currentUser.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Only administrators can assign requests');
+    if (currentUser.role !== UserRole.ADMIN && currentUser.role !== UserRole.TECHNICIAN) {
+      throw new ForbiddenException('Only administrators and technicians can assign requests');
+    }
+
+    if (
+      currentUser.role === UserRole.TECHNICIAN &&
+      assignRequestDto.userId &&
+      assignRequestDto.userId !== currentUser.id
+    ) {
+      throw new ForbiddenException('Technicians can only assign requests to themselves');
     }
 
     // Check if request is in a terminal state

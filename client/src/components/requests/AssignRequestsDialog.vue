@@ -2,7 +2,7 @@
   <v-dialog v-model="dialogVisible" max-width="800px" persistent>
     <v-card>
       <v-card-title>
-        <span class="headline">Массовое назначение заявок</span>
+        <span class="headline">Назначение заявок</span>
       </v-card-title>
 
       <v-card-text>
@@ -44,6 +44,17 @@
                   chips
                   small-chips
                 ></v-select>
+
+                <!-- Сообщение при отсутствии заявок -->
+                <v-alert
+                  v-if="!requestsLoading && unassignedRequests.length === 0"
+                  type="info"
+                  text
+                  dense
+                  class="mt-2"
+                >
+                  Нет доступных неназначенных заявок. Создайте новую заявку или освободите существующую от назначения.
+                </v-alert>
               </v-col>
 
               <v-col cols="12">
@@ -67,7 +78,7 @@
           color="blue darken-1"
           text
           @click="assignRequests"
-          :disabled="!valid || loading"
+          :disabled="!valid || loading || unassignedRequests.length === 0"
           :loading="loading"
         >
           Назначить
@@ -96,6 +107,8 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
+
 export default {
   name: 'AssignRequestsDialog',
   props: {
@@ -137,6 +150,11 @@ export default {
       resultsMessage: ''
     };
   },
+  computed: {
+    ...mapGetters('auth', [
+      'currentUser'
+    ])
+  },
   watch: {
     dialog(newVal) {
       this.dialogVisible = newVal;
@@ -172,6 +190,7 @@ export default {
         await this.$store.dispatch('users/fetchTechnicians');
         this.technicians = this.$store.getters['users/allTechnicians'] || [];
       } catch (error) {
+        console.error('Error loading technicians:', error);
         this.$store.commit('notification/SHOW_ERROR', 'Ошибка при загрузке списка техников');
       } finally {
         this.technicianLoading = false;
@@ -181,19 +200,35 @@ export default {
     async loadUnassignedRequests() {
       this.requestsLoading = true;
       try {
+        // Загружаем все заявки без фильтра по assignedToId
         const response = await this.$store.dispatch('requests/fetchRequests', {
-          assignedToId: 'unassigned',
+          limit: 100,
           sortBy: 'createdAt',
           order: 'DESC'
         });
 
-        this.unassignedRequests = (response.data || []).map(request => ({
-          id: request.id,
-          displayText: `${request.number} - ${request.title}`,
-          request
-        }));
+        // Проверяем ответ
+        console.log('Requests response:', response);
+
+        // Фильтруем заявки на клиенте, отбирая только неназначенные
+        if (response && response.data) {
+          this.unassignedRequests = response.data
+            .filter(request => !request.assignedToId)
+            .map(request => ({
+              id: request.id,
+              displayText: `${request.number} - ${request.title}`,
+              request
+            }));
+
+          console.log(`Loaded ${this.unassignedRequests.length} unassigned requests`);
+        } else {
+          console.error('Unexpected response format:', response);
+          this.unassignedRequests = [];
+        }
       } catch (error) {
-        this.$store.commit('notification/SHOW_ERROR', 'Ошибка при загрузке неназначенных заявок');
+        console.error('Error loading unassigned requests:', error);
+        this.$store.commit('notification/SHOW_ERROR', 'Ошибка при загрузке заявок');
+        this.unassignedRequests = [];
       } finally {
         this.requestsLoading = false;
       }
@@ -262,6 +297,7 @@ export default {
           this.$store.commit('notification/SHOW_WARNING', this.resultsMessage);
         }
       } catch (error) {
+        console.error('Error in batch assignment:', error);
         this.$store.commit('notification/SHOW_ERROR', 'Ошибка при назначении заявок');
       } finally {
         this.loading = false;

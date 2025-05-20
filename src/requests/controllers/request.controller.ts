@@ -79,7 +79,7 @@ export class RequestController {
   }
 
   @Post(':id/assign')
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TECHNICIAN)
   assignRequest(
     @Param('id') id: string,
     @Body() assignRequestDto: AssignRequestDto,
